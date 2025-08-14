@@ -8,7 +8,6 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap">
 
 <!-- Firebase SDKs (must be before our main script) -->
-<!-- TODO: No edits needed here; leave these as-is -->
 <script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-firestore-compat.js"></script>
@@ -27,11 +26,8 @@
   @keyframes hue{from{filter:hue-rotate(0deg) blur(40px)}to{filter:hue-rotate(360deg) blur(40px)}}
   #bgImage,#bgVideo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 
-  /* TOP BAR */
-  .topbar{position:fixed;inset:16px 16px auto 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;color:var(--muted);font-weight:600;z-index:5}
-  .top-left,.top-right{display:flex;gap:16px;align-items:center}
-  .iconbtn{padding:8px 10px;border:1px solid rgba(255,255,255,.18);border-radius:10px;background:rgba(0,0,0,.25);color:#fff;cursor:pointer;font-weight:600}
-  .iconbtn:hover{background:rgba(255,255,255,.15)}
+  /* TOP BAR (kept only for timezone) */
+  .topbar{position:fixed;inset:16px 16px auto 16px;display:flex;justify-content:flex-end;align-items:center;gap:12px;color:var(--muted);font-weight:600;z-index:5}
   .crumb{opacity:.85}
 
   /* HERO */
@@ -51,7 +47,7 @@
   .cta.secondary{border-color:rgba(255,255,255,.55);background:rgba(255,255,255,.08)}
   .cta.secondary:hover{background:rgba(255,255,255,.14)}
 
-  /* NEW: hero streak pill */
+  /* Streak pill on hero */
   .streak-hero{
     margin-top:10px;
     font-weight:800;
@@ -70,14 +66,12 @@
     box-shadow:0 10px 30px rgba(0,0,0,.25);
   }
 
-  /* BOTTOM */
+  /* BOTTOM BAR (now holds all action buttons) */
   .bottom{position:fixed;inset:auto 16px 14px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--muted);z-index:5;flex-wrap:wrap}
-  .loc{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:6px 10px}
-  .links{display:flex;gap:10px;align-items:center}
-  .quickbtn{background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.15);color:#fff;padding:6px 10px;border-radius:10px;font-weight:600;cursor:pointer}
-  .quickbtn:hover{background:rgba(255,255,255,.15)}
-  .quote{text-align:center;max-width:min(920px,90vw);margin-inline:auto;position:fixed;left:50%;transform:translateX(-50%);bottom:56px;font-size:14px;color:#fff;text-shadow:0 6px 24px rgba(0,0,0,.55)}
-  .quote .author{opacity:.8;margin-left:6px}
+  .links{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .quickbtn,.iconbtn{background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.15);color:#fff;padding:6px 10px;border-radius:10px;font-weight:600;cursor:pointer}
+  .quickbtn:hover,.iconbtn:hover{background:rgba(255,255,255,.15)}
+  .hidden{display:none}
 
   /* PANELS */
   .panel{position:fixed;right:16px;top:70px;bottom:16px;width:min(720px,92vw);background:var(--panel);border:1px solid var(--panelBorder);border-radius:14px;backdrop-filter:blur(16px) saturate(120%);padding:14px;overflow:auto;display:none;z-index:6}
@@ -90,7 +84,10 @@
   table{width:100%;border-collapse:collapse;margin-top:8px}
   th,td{padding:8px 6px;border-bottom:1px solid var(--panelBorder);font-size:13px;text-align:left}
   .notice{font-size:12px;color:var(--soft)}
-  .hidden{display:none}
+
+  /* Toast (in-app message) */
+  .toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%) translateY(10px);background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.25);padding:10px 14px;border-radius:10px;color:#fff;font-weight:700;opacity:0;pointer-events:none;transition:opacity .25s, transform .25s;z-index:7}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 </style>
 </head>
 <body>
@@ -101,21 +98,9 @@
     <video id="bgVideo" muted autoplay loop playsinline style="display:none"></video>
   </div>
 
-  <!-- TOP BAR -->
+  <!-- TOP BAR (timezone only; removed Links/Tabs/Focus and top buttons) -->
   <div class="topbar">
-    <div class="top-left"><span class="crumb">Links</span><span class="crumb">Tabs</span><span class="crumb">Focus</span></div>
-    <div class="top-right">
-      <span id="tzLabel" class="crumb"></span>
-
-      <!-- NEW: Auth toggle button -->
-      <!-- TODO: After you paste Firebase config below, this will work -->
-      <button class="iconbtn" id="authToggle">🔐 Sign in</button>
-
-      <button class="iconbtn" id="openStats">📈 Stats</button>
-      <button class="iconbtn" id="openBg">🖼️ Background</button>
-      <button class="iconbtn" id="openSettings">⚙️ Settings</button>
-      <button class="iconbtn" id="openSync">🔗 Sync</button>
-    </div>
+    <span id="tzLabel" class="crumb"></span>
   </div>
 
   <!-- HERO -->
@@ -129,15 +114,13 @@
     <div id="timeText" class="time">25:00</div>
     <div id="subText" class="subtitle">Focus time.</div>
 
-    <!-- NEW: streak on main display -->
     <div class="streak-hero" id="streakHeroWrap">
       🔥 <span id="streakHero">0</span>-day streak
     </div>
 
-    <!-- NEW: Controls row with Restart -->
     <div class="cta-row">
       <button id="startStop" class="cta">START</button>
-      <button id="restartBtn" class="cta secondary" title="Start a fresh session now (does not log partial)">⟳ RESTART</button>
+      <button id="restartBtn" class="cta secondary" title="Start a fresh session now and log elapsed time">⟳ RESTART</button>
     </div>
 
     <audio id="ding" preload="auto">
@@ -145,10 +128,9 @@
     </audio>
   </main>
 
-  <!-- BOTTOM -->
+  <!-- BOTTOM (moved all action buttons here; removed 'Custom image' label) -->
   <div class="bottom">
-    <div class="loc" id="locLabel">Live gradient</div>
-    <div class="links">
+    <div class="links" id="leftLinks">
       <button id="openNotes" class="quickbtn">Notes</button>
       <button id="openTodos" class="quickbtn">Todo</button>
       <button id="exportBtn" class="quickbtn">Export JSON</button>
@@ -156,7 +138,16 @@
       <button id="importBtn" class="quickbtn">Import…</button>
       <button id="resetData" class="quickbtn">Reset</button>
     </div>
+
+    <div class="links" id="rightLinks">
+      <button class="iconbtn" id="authToggle">🔐 Sign in</button>
+      <button class="iconbtn" id="openStats">📈 Stats</button>
+      <button class="iconbtn" id="openBg">🖼️ Background</button>
+      <button class="iconbtn" id="openSettings">⚙️ Settings</button>
+      <button class="iconbtn" id="openSync">🔗 Sync</button>
+    </div>
   </div>
+
   <div class="quote" id="quoteBox">“Small progress is still progress.” <span class="author">— Unknown</span></div>
 
   <!-- PANELS -->
@@ -202,6 +193,9 @@
       <div><div class="notice">Break length (min)</div><input id="breakLenInput" type="number" min="0" max="120" value="5" style="width:120px"></div>
     </div>
 
+    <h3 style="margin:12px 0 6px;">Notifications</h3>
+    <label class="pill"><input type="checkbox" id="notifyEnable"> Desktop notification when session completes</label>
+
     <h3 style="margin:12px 0 6px;">Free-day automation</h3>
     <label class="pill"><input type="checkbox" id="autoApplyChk"> Auto-apply free days to recent misses</label>
     <div class="row" style="margin-top:8px;">
@@ -228,6 +222,9 @@
     <div class="notice">Sends daily totals (date, minutes, goal, usedFreeDay) to your endpoint. Keep your Notion token server-side.</div>
   </section>
 
+  <!-- In-app toast -->
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
 <script>
 /* ===== Flags ===== */
 var Q = new URLSearchParams(location.search);
@@ -246,6 +243,10 @@ function fmtHM(ms){
   var h=Math.floor(ms/3600), m=Math.floor((ms%3600)/60), s=ms%60;
   return (h?String(h).padStart(2,'0')+":" :"")+String(m).padStart(2,'0')+":"+String(s).padStart(2,'0');
 }
+function showToast(msg){
+  var t=$('#toast'); if(!t) return; t.textContent=msg; t.classList.add('show');
+  clearTimeout(showToast._tid); showToast._tid=setTimeout(function(){t.classList.remove('show');},2500);
+}
 
 /* ===== State ===== */
 var LS_KEY="focusClock.hero.v2."+NS;
@@ -256,13 +257,14 @@ var DEF={
   autoApplyFreeDays:false, days:[], freeDayBank:0, runStartDate:null, runMilestonesAwarded:0, lastSeenDate:null,
   background:{mode:'gradient', color:'#0b0e14', imageDataUrl:null, videoUrl:''},
   notes:'', todos:'', notionSync:{enabled:false,endpoint:'',databaseId:'',widgetKey:''}, lastSynced:{},
-  updatedAtMs:0 // NEW: used for cloud conflict resolution
+  notifyEnabled:false,               // NEW: desktop notifications toggle (default off)
+  updatedAtMs:0
 };
 function load(){ try{ var raw=localStorage.getItem(LS_KEY); S = raw? Object.assign({}, DEF, JSON.parse(raw)) : deepClone(DEF);}catch(e){ S=deepClone(DEF);} normalize(); }
 function save(){
-  S.updatedAtMs = Date.now();                       // NEW: bump version
+  S.updatedAtMs = Date.now();
   localStorage.setItem(LS_KEY, JSON.stringify(S));
-  scheduleCloudSave();                              // NEW: sync to cloud (no-op when logged out)
+  scheduleCloudSave();
 }
 function normalize(){
   S.goalMinutes=clamp(+S.goalMinutes||25,10,600);
@@ -295,7 +297,24 @@ function recompute(){
 /* ===== Break policy ===== */
 function effBreak(mins){ return (S.breakPolicy==='never'?0 : S.breakPolicy==='always'?S.breakMinutes : (mins>S.breakThreshold?S.breakMinutes:0)); }
 
-/* ===== Timer (with RESTART) ===== */
+/* ===== Notifications ===== */
+function canNotify(){ return S.notifyEnabled && 'Notification' in window; }
+function ensurePermission(){
+  if(!canNotify()) return;
+  if(Notification.permission==='default'){
+    Notification.requestPermission().catch(function(){});
+  }
+}
+function notifyDesktop(title, body){
+  if(!canNotify()) return;
+  var doShow=function(){ try{ new Notification(title,{body:body}); }catch(_){ /* ignore */ } };
+  if(Notification.permission==='granted') doShow();
+  else if(Notification.permission==='default'){
+    Notification.requestPermission().then(function(p){ if(p==='granted') doShow(); });
+  }
+}
+
+/* ===== Timer (with partial logging on RESTART) ===== */
 var selectedMode='work';
 var Timer={
   mode:'idle', durationMs:0, remainingMs:0, endAt:null, raf:null, prevMode:'work',
@@ -309,9 +328,18 @@ var Timer={
   reset:function(){ cancelAnimationFrame(this.raf); this.mode='idle'; this.remainingMs=(selectedMode==='work'? S.sessionMinutes: effBreak(S.sessionMinutes))*60*1000; updateTimeText(this.remainingMs); $('#startStop').textContent='START'; $('#subText').textContent= selectedMode==='work' ? 'Focus time.' : (effBreak(S.sessionMinutes)>0?'Break time.':'Break disabled by policy'); },
   restart:function(mode){
     cancelAnimationFrame(this.raf);
-    if(this.mode!=='idle'){
-      var ok=confirm("Start a new session now?\nCurrent progress will not be logged.");
-      if(!ok){ this.tick && this.tick(); return; }
+    // NEW: log partial focus time before restarting
+    var wasWork = (this.mode==='work' || (this.mode==='paused' && this.prevMode==='work'));
+    if(wasWork){
+      var now = performance.now();
+      var left = (this.mode==='paused') ? this.remainingMs : Math.max(0,this.endAt - now);
+      var elapsedMs = Math.max(0, this.durationMs - left);
+      var mins = Math.round(elapsedMs/60000);
+      if(mins>0){
+        var d=getDay(todayStr()); d.minutes += mins; save(); refreshStats(); queueSync(todayStr());
+        showToast('Logged '+mins+' min • New session started');
+        notifyDesktop('Focus logged', mins+' minutes added to today');
+      }
     }
     this.mode='idle';
     selectedMode = mode || selectedMode;
@@ -321,10 +349,18 @@ var Timer={
   done:function(){
     try{ var ding=$('#ding'); ding.currentTime=0; ding.play().catch(function(){});}catch(_){}
     if(this.mode==='work'){
-      var mins=Math.round(this.durationMs/60000); var d=getDay(todayStr()); d.minutes+=mins; save(); refreshStats(); queueSync(todayStr());
+      var mins=Math.round(this.durationMs/60000);
+      var d=getDay(todayStr()); d.minutes+=mins; save(); refreshStats(); queueSync(todayStr());
+      showToast('Focus complete • '+mins+' min logged');
+      notifyDesktop('Focus complete', mins+' minutes logged');
       var b=effBreak(S.sessionMinutes);
-      if(b>0){ this.mode='break'; this.durationMs=b*60*1000; this.remainingMs=this.durationMs; this.endAt=performance.now()+this.remainingMs; updateModeLabels(); this.tick(); } else { this.reset(); }
-    } else { this.reset(); }
+      if(b>0){ this.mode='break'; this.durationMs=b*60*1000; this.remainingMs=this.durationMs; this.endAt=performance.now()+this.remainingMs; updateModeLabels(); this.tick(); }
+      else { this.reset(); }
+    } else {
+      showToast('Break over • Back to focus');
+      notifyDesktop('Break over', 'Time to focus again');
+      this.reset();
+    }
   }
 };
 function updateTimeText(ms){ $('#timeText').textContent=fmtHM(ms); }
@@ -339,27 +375,22 @@ function hidePanels(){ document.querySelectorAll('.panel').forEach(function(p){p
 function applyBackground(){
   var live=$('#liveGradient'), img=$('#bgImage'), vid=$('#bgVideo');
   live.style.display=img.style.display=vid.style.display='none';
-  if(S.background.mode==='gradient'){ live.style.display='block'; $('#locLabel').textContent='Live gradient'; }
-  else if(S.background.mode==='image' && S.background.imageDataUrl){ img.src=S.background.imageDataUrl; img.style.display='block'; $('#locLabel').textContent='Custom image'; }
-  else if(S.background.mode==='video' && S.background.videoUrl){ vid.src=S.background.videoUrl; vid.style.display='block'; $('#locLabel').textContent='Background video'; }
-  else if(S.background.mode==='color'){ document.body.style.background=S.background.color||'#0b0e14'; $('#locLabel').textContent=S.background.color||'Solid color'; }
+  if(S.background.mode==='gradient'){ live.style.display='block'; }
+  else if(S.background.mode==='image' && S.background.imageDataUrl){ img.src=S.background.imageDataUrl; img.style.display='block'; }
+  else if(S.background.mode==='video' && S.background.videoUrl){ vid.src=S.background.videoUrl; vid.style.display='block'; }
+  else if(S.background.mode==='color'){ document.body.style.background=S.background.color||'#0b0e14'; }
 }
 
 /* ===== Stats ===== */
 function refreshStats(){
-  var streak = recompute();                   // compute & update state
+  var streak = recompute();
   $('#goalPill').textContent=S.goalMinutes;
   $('#freePill').textContent=S.freeDayBank;
   $('#streakPill').textContent=streak;
-
-  // NEW: update hero streak
-  var sh=document.getElementById('streakHero');
-  if (sh) sh.textContent = streak;
-
+  var sh=document.getElementById('streakHero'); if (sh) sh.textContent = streak;
   var toNext = 14 - (streak % 14 || 14);
   $('#nextFreeIn').textContent=toNext+'d';
 
-  // table
   var tb=$('#logTable tbody'); tb.innerHTML='';
   [].concat(S.days).sort(function(a,b){return b.date.localeCompare(a.date);}).slice(0,60).forEach(function(d){
     var tr=document.createElement('tr'); var meet=isSuccess(d);
@@ -367,7 +398,6 @@ function refreshStats(){
     tb.appendChild(tr);
   });
 
-  // Optional chart (Chart.js not included by default)
   if(window.Chart){
     var ctx=$('#chart').getContext('2d'); var last30=[], labels=[]; var t=todayStr();
     for(var i=29;i>=0;i--){ var date=addDays(t,-i); var dd=S.days.find(function(x){return x.date===date;})||{minutes:0}; last30.push(dd.minutes); var dt=new Date(date+"T00:00:00"); labels.push(dt.toLocaleDateString([], {month:'short', day:'numeric'})); }
@@ -393,27 +423,19 @@ var QUOTES=[["You cannot swim for new horizons until you have courage to lose si
 function setQuote(){ var qa=QUOTES[(new Date().getDate())%QUOTES.length]; $('#quoteBox').innerHTML='“'+qa[0]+'” <span class="author">— '+qa[1]+'</span>'; }
 
 /* ===== Cloud auth + sync (Firebase) ===== */
-
-/* TODO: PASTE YOUR REAL FIREBASE CONFIG HERE
-   Get it from: Firebase Console → Project settings → Your apps → Web app.
-   Replace ONLY the placeholder strings below. */
+/* Your actual Firebase config — left intact as requested */
 var firebaseConfig = {
-  apiKey: "AIzaSyC7fhspLB7sNThCwRt2k8qsKcAOb_Fr6dU",                         // TODO
-  authDomain: "streak-clock.firebaseapp.com",  // TODO
-  projectId: "streak-clock",                   // TODO
-  appId: "1:131829224528:web:e1c75d85e1311c30026d55"                            // TODO
+  apiKey: "AIzaSyC7fhspLB7sNThCwRt2k8qsKcAOb_Fr6dU",
+  authDomain: "streak-clock.firebaseapp.com",
+  projectId: "streak-clock",
+  appId: "1:131829224528:web:e1c75d85e1311c30026d55"
   // optional: storageBucket, messagingSenderId, measurementId
 };
-/* TODO: After deploying, also add your site host to:
-   Firebase Console → Authentication → Settings → Authorized domains
-   e.g. localhost, YOUR-USERNAME.github.io, your custom domain. */
 
 var CLOUD = {enabled:false, app:null, auth:null, db:null, user:null, unsub:null};
 function initCloud(){
   try{
-    if(!firebaseConfig || !firebaseConfig.apiKey || String(firebaseConfig.apiKey).includes("YOUR_")){
-      CLOUD.enabled=false; updateAuthUI(); return;
-    }
+    if(!firebaseConfig || !firebaseConfig.apiKey){ CLOUD.enabled=false; updateAuthUI(); return; }
     CLOUD.app  = firebase.initializeApp(firebaseConfig);
     CLOUD.auth = firebase.auth();
     CLOUD.db   = firebase.firestore();
@@ -427,7 +449,6 @@ function initCloud(){
     });
   }catch(e){ console.warn("Cloud init failed:", e); CLOUD.enabled=false; updateAuthUI(); }
 }
-
 function updateAuthUI(){
   var btn=document.getElementById('authToggle'); if(!btn) return;
   if(!CLOUD.enabled){
@@ -448,13 +469,9 @@ function updateAuthUI(){
     };
   }
 }
-
-function profileRef(){
-  return CLOUD.db.collection('users').doc(CLOUD.user.uid).collection('profiles').doc(NS);
-}
+function profileRef(){ return CLOUD.db.collection('users').doc(CLOUD.user.uid).collection('profiles').doc(NS); }
 function syncFromCloud(){
   var ref=profileRef();
-  // Initial pull
   ref.get().then(function(snap){
     if(snap.exists){
       var data=snap.data();
@@ -463,15 +480,10 @@ function syncFromCloud(){
         S = Object.assign({}, S, remote);
         localStorage.setItem(LS_KEY, JSON.stringify(S));
         applyBackground(); Timer.reset(); refreshStats(); setQuote();
-      }else{
-        saveToCloud();
-      }
-    }else{
-      saveToCloud();
-    }
+      }else{ saveToCloud(); }
+    }else{ saveToCloud(); }
   }).catch(function(e){ console.warn('Initial cloud load failed:', e); });
 
-  // Live updates from other devices
   CLOUD.unsub = ref.onSnapshot(function(doc){
     if(!doc.exists) return;
     var d=doc.data(); var remote=d.state||d;
@@ -483,53 +495,57 @@ function syncFromCloud(){
   });
 }
 var cloudTimer=null;
-function scheduleCloudSave(){
-  if(!(CLOUD.enabled && CLOUD.user)) return;
-  if(cloudTimer) clearTimeout(cloudTimer);
-  cloudTimer=setTimeout(saveToCloud, 500);
-}
+function scheduleCloudSave(){ if(!(CLOUD.enabled && CLOUD.user)) return; if(cloudTimer) clearTimeout(cloudTimer); cloudTimer=setTimeout(saveToCloud, 500); }
 function saveToCloud(){
   if(!(CLOUD.enabled && CLOUD.user)) return;
   var ref=profileRef();
-  var payload={
-    ns:NS, version:2,
-    state:S,
-    updatedAtMs:S.updatedAtMs||Date.now(),
-    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-  };
+  var payload={ ns:NS, version:2, state:S, updatedAtMs:S.updatedAtMs||Date.now(), updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
   ref.set(payload,{merge:true}).catch(function(e){ console.warn('Cloud save failed:', e); });
 }
 
 /* ===== Wiring ===== */
 function wire(){
+  // Panels
   $('#openStats').onclick=function(){showPanel('#panel-stats');};
   $('#openBg').onclick=function(){showPanel('#panel-bg');};
   $('#openSettings').onclick=function(){showPanel('#panel-settings');};
   $('#openSync').onclick=function(){showPanel('#panel-sync');};
   document.addEventListener('keydown',function(e){ if(e.key==='Escape') hidePanels(); });
 
+  // Tabs
   $('#tabFocus').onclick=function(){ selectedMode='work'; $('#tabFocus').classList.add('active'); $('#tabBreak').classList.remove('active'); $('#subText').textContent='Focus time.'; updateTimeText(S.sessionMinutes*60*1000); if(Timer.mode!=='idle') Timer.reset(); };
   $('#tabBreak').onclick=function(){ selectedMode='break'; $('#tabBreak').classList.add('active'); $('#tabFocus').classList.remove('active'); var b=effBreak(S.sessionMinutes); $('#subText').textContent=b>0?'Break time.':'Break disabled by policy'; updateTimeText(b*60*1000); if(Timer.mode!=='idle') Timer.reset(); };
 
+  // Controls
   $('#startStop').onclick=function(){ if(Timer.mode==='idle') Timer.start(selectedMode); else if(Timer.mode==='paused') Timer.resume(); else Timer.pause(); };
-  document.getElementById('restartBtn').onclick=function(){ Timer.restart(selectedMode); };
+  $('#restartBtn').onclick=function(){ Timer.restart(selectedMode); };
 
+  // Settings
   $('#sessionInput').onchange=function(e){ S.sessionMinutes=clamp(+e.target.value||25,1,300); save(); if(selectedMode==='work') updateTimeText(S.sessionMinutes*60*1000); if(Timer.mode==='idle') Timer.reset(); };
   $('#goalInput').onchange=function(e){ S.goalMinutes=clamp(+e.target.value||25,10,600); save(); refreshStats(); queueSync(todayStr()); };
+
   Array.prototype.forEach.call(document.querySelectorAll('input[name="breakPolicy"]'),function(r){
-    r.checked=(r.value===S.breakPolicy); r.addEventListener('change',function(){ S.breakPolicy=document.querySelector('input[name="breakPolicy"]:checked').value; save(); if(selectedMode==='break') updateTimeText(effBreak(S.sessionMinutes)*60*1000); });
+    r.checked=(r.value===S.breakPolicy);
+    r.addEventListener('change',function(){ S.breakPolicy=document.querySelector('input[name="breakPolicy"]:checked').value; save(); if(selectedMode==='break') updateTimeText(effBreak(S.sessionMinutes)*60*1000); });
   });
   $('#breakThresholdInput').onchange=function(e){ S.breakThreshold=clamp(+e.target.value||30,1,300); save(); if(selectedMode==='break') updateTimeText(effBreak(S.sessionMinutes)*60*1000); };
   $('#breakLenInput').onchange=function(e){ S.breakMinutes=clamp(+e.target.value||5,0,120); save(); if(selectedMode==='break') updateTimeText(effBreak(S.sessionMinutes)*60*1000); };
 
+  // Notifications
+  $('#notifyEnable').checked=!!S.notifyEnabled;
+  $('#notifyEnable').onchange=function(e){ S.notifyEnabled=!!e.target.checked; save(); if(S.notifyEnabled) ensurePermission(); };
+
+  // Free day tools
   $('#applyFreeYesterday').onclick=function(){ if(S.freeDayBank<=0){ alert("No free days in bank."); return; } var y=addDays(todayStr(),-1); var d=getDay(y); if(isSuccess(d)){ alert("Yesterday already counts as success."); return; } d.usedFreeDay=true; S.freeDayBank--; save(); refreshStats(); queueSync(y); };
   $('#manageMisses').onclick=function(){ var missed=[].concat(S.days).filter(function(d){return !isSuccess(d);}).slice(-60); if(!missed.length){ alert("No missed days to cover. 🎉"); return; } var input=prompt("Free days: "+S.freeDayBank+"\nDates to cover (comma-separated YYYY-MM-DD):\n"+missed.map(function(d){return "• "+d.date+" ("+d.minutes+"m)";}).join('\n')); if(!input) return; var want=input.split(',').map(function(s){return s.trim();}).filter(Boolean); for(var i=0;i<want.length;i++){ var dt=want[i]; var dd=getDay(dt); if(!isSuccess(dd)&&S.freeDayBank>0){ dd.usedFreeDay=true; S.freeDayBank--; queueSync(dt); } } save(); refreshStats(); };
 
+  // Notes / Todos
   $('#openNotes').onclick=function(){ showPanel('#panel-settings'); $('#notesBox').focus(); };
   $('#openTodos').onclick=function(){ showPanel('#panel-settings'); $('#todoBox').focus(); };
   $('#notesBox').value=S.notes||''; $('#notesBox').oninput=function(e){ S.notes=e.target.value; save(); };
   $('#todoBox').value=S.todos||''; $('#todoBox').oninput=function(e){ S.todos=e.target.value; save(); };
 
+  // Background
   document.querySelectorAll('[data-bg]').forEach(function(btn){ btn.onclick=function(){ var mode=btn.getAttribute('data-bg');
     if(mode==='gradient'){ S.background.mode='gradient'; save(); applyBackground(); }
     if(mode==='image'){ var inp=document.createElement('input'); inp.type='file'; inp.accept='image/*'; inp.onchange=function(e){ var f=e.target.files[0]; if(!f) return; var r=new FileReader(); r.onload=function(){ S.background.imageDataUrl=r.result; S.background.mode='image'; save(); applyBackground(); }; r.readAsDataURL(f); }; inp.click(); }
@@ -538,6 +554,7 @@ function wire(){
   };});
   $('#bgClear').onclick=function(){ S.background=deepClone(DEF.background); save(); applyBackground(); };
 
+  // Notion sync panel
   $('#syncEndpoint').value=S.notionSync.endpoint||''; $('#syncDb').value=S.notionSync.databaseId||''; $('#syncKey').value=S.notionSync.widgetKey||''; $('#syncEnable').checked=!!S.notionSync.enabled;
   $('#syncEndpoint').onchange=function(e){ S.notionSync.endpoint=e.target.value.trim(); save(); };
   $('#syncDb').onchange=function(e){ S.notionSync.databaseId=e.target.value.trim(); save(); };
@@ -545,10 +562,11 @@ function wire(){
   $('#syncEnable').onchange=function(e){ S.notionSync.enabled=!!e.target.checked; save(); if(S.notionSync.enabled) queueSync(todayStr()); };
   $('#syncNow').onclick=function(){ var t=todayStr(); var ds=[t]; for(var i=1;i<=7;i++) ds.push(addDays(t,-i)); ds.forEach(queueSync); alert("Sync queued (today + last 7)."); };
 
+  // Keys
   document.addEventListener('keydown',function(e){
     if(e.code==='Space'){ e.preventDefault(); $('#startStop').click(); }
     if(e.key==='r'||e.key==='R'){ Timer.reset(); }
-    if(e.key==='n'||e.key==='N'){ Timer.restart(selectedMode); } // NEW: start new session
+    if(e.key==='n'||e.key==='N'){ Timer.restart(selectedMode); }
   });
 }
 
@@ -561,9 +579,8 @@ function boot(){
   selectedMode='work'; Timer.reset();
   refreshStats();
   wire();
-
-  // NEW: start auth + cloud sync
   initCloud();
+  ensurePermission(); // ask if notifications enabled
 
   setInterval(function(){
     var planned=(selectedMode==='work'? S.sessionMinutes : effBreak(S.sessionMinutes))*60000;
