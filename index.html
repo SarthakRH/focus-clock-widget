@@ -99,6 +99,10 @@
   /* Toast */
   .toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%) translateY(10px);background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.25);padding:10px 14px;border-radius:10px;color:#fff;font-weight:700;opacity:0;pointer-events:none;transition:opacity .25s, transform .25s;z-index:7}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* Small inline alert for auth issues */
+  .auth-hint{position:fixed;left:50%;top:70px;transform:translateX(-50%);background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.25);padding:8px 12px;border-radius:10px;font-size:12px;display:none;z-index:8}
+  .auth-hint.show{display:block}
 </style>
 </head>
 <body>
@@ -119,13 +123,15 @@
     </div>
   </div>
 
+  <!-- Small inline auth hint -->
+  <div id="authHint" class="auth-hint"></div>
+
   <!-- HERO -->
   <main class="hero" aria-live="polite">
     <div class="tabs-line">
       <div class="focus-tabs">
         <button id="tabFocus" class="active">FOCUS</button>
         <button id="tabBreak">BREAK</button>
-        <!-- compact break length controller -->
         <span class="mini-ctrl" id="breakCtrl">
           <button class="mini-btn" id="breakDec" title="Shorter break">−</button>
           <span id="breakLenBadge" class="mini-val">5m</span>
@@ -143,11 +149,9 @@
 
     <div class="cta-row">
       <button id="startStop" class="cta">START</button>
-      <!-- RESET: returns to planned time, does not start, no logging -->
       <button id="resetBtn" class="cta secondary" title="Reset to the set time">⟲ RESET</button>
     </div>
 
-    <!-- Centered quote -->
     <div class="quote" id="quoteBox">“Small progress is still progress.” <span class="author">— Unknown</span></div>
 
     <audio id="ding" preload="auto">
@@ -272,6 +276,10 @@ function hms(){ var d=new Date(); return d.toLocaleTimeString([], {hour:'2-digit
 function showToast(msg){
   var t=$('#toast'); if(!t) return; t.textContent=msg; t.classList.add('show');
   clearTimeout(showToast._tid); showToast._tid=setTimeout(function(){t.classList.remove('show');},2500);
+}
+function isTop(){ try{ return window.top === window.self; } catch(_){ return false; } }
+function storageAvailable(type){
+  try{ var s=window[type]; var x="__t"+Math.random(); s.setItem(x,"1"); var ok=s.getItem(x)==="1"; s.removeItem(x); return ok; }catch(e){ return false; }
 }
 
 /* ===== State ===== */
@@ -416,6 +424,7 @@ var firebaseConfig = {
   appId: "1:131829224528:web:e1c75d85e1311c30026d55"
 };
 var CLOUD = {enabled:false, app:null, auth:null, db:null, user:null, unsub:null};
+
 function initCloud(){
   try{
     if(!firebaseConfig || !firebaseConfig.apiKey){ CLOUD.enabled=false; updateAuthUI(); return; }
@@ -423,6 +432,9 @@ function initCloud(){
     CLOUD.auth = firebase.auth();
     CLOUD.db   = firebase.firestore();
     CLOUD.enabled = true;
+
+    // Prefer persistent local auth
+    CLOUD.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(function(){});
 
     CLOUD.auth.onAuthStateChanged(function(user){
       CLOUD.user = user || null;
@@ -432,6 +444,20 @@ function initCloud(){
     });
   }catch(e){ console.warn("Cloud init failed:", e); CLOUD.enabled=false; updateAuthUI(); }
 }
+
+function authErrorHint(msg, offerNewTab){
+  var box = $('#authHint'); if(!box) return;
+  var note = msg || 'Sign-in is blocked by the browser in this context.';
+  box.innerHTML = note + (offerNewTab ? ' <button id="authOpenTab" class="iconbtn" style="margin-left:8px">Open sign-in in new tab</button>' : '');
+  box.classList.add('show');
+  if(offerNewTab){
+    setTimeout(function(){
+      var b=document.getElementById('authOpenTab');
+      if(b) b.onclick=function(){ window.open(window.location.href.split('#')[0], '_blank'); };
+    },0);
+  }
+}
+
 function updateAuthUI(){
   var btn=document.getElementById('authToggle'); if(!btn) return;
   if(!CLOUD.enabled){
@@ -441,21 +467,50 @@ function updateAuthUI(){
     return;
   }
   if(CLOUD.user){
+    $('#authHint')?.classList.remove('show');
     var name=(CLOUD.user.displayName||CLOUD.user.email||'Account').split(' ')[0];
     btn.textContent='🔓 Sign out ('+name+')';
     btn.onclick=function(){ CLOUD.auth.signOut().catch(function(e){ alert('Sign-out failed: '+e.message); }); };
   }else{
     btn.textContent='🔐 Sign in';
     btn.onclick=function(){
+      $('#authHint')?.classList.remove('show');
       var provider=new firebase.auth.GoogleAuthProvider();
-      CLOUD.auth.signInWithPopup(provider).catch(function(e){ alert('Sign-in failed: '+e.message); });
+      provider.setCustomParameters({prompt:'select_account'});
+
+      // Try popup first
+      CLOUD.auth.signInWithPopup(provider).catch(function(e){
+        var text = String(e && (e.code||e.message||e));
+        var low  = text.toLowerCase();
+
+        // If popup blocked OR environment doesn’t support popups
+        var popupBlocked = low.includes('popup-blocked') || low.includes('popup_closed_by_user') || low.includes('operation-not-supported');
+
+        // The specific state error you saw (redirect flow)
+        var missingState = low.includes('missing initial state');
+
+        // If we can try redirect safely (top-level + sessionStorage works), do it.
+        if(popupBlocked && isTop() && storageAvailable('sessionStorage')){
+          return CLOUD.auth.signInWithRedirect(provider);
+        }
+
+        // Otherwise show a helpful hint and offer a new-tab sign-in
+        authErrorHint(
+          'Unable to sign in here. This usually happens in iframes (e.g., Notion) or when third-party storage is blocked. '+
+          'Open the app in a new tab to complete sign-in.',
+          true
+        );
+
+        // Log details for debugging
+        console.warn('Auth error:', e);
+      });
     };
   }
 }
+
 function profileRef(){ return CLOUD.db.collection('users').doc(CLOUD.user.uid).collection('profiles').doc(NS); }
 
-/* IMPORTANT: avoid interrupting a running timer when cloud sync updates.
-   Only reset if the timer is IDLE. */
+/* avoid interrupting a running timer on remote updates */
 function applyRemoteState(remote){
   S = Object.assign({}, S, remote);
   localStorage.setItem(LS_KEY, JSON.stringify(S));
@@ -502,7 +557,7 @@ function wire(){
   $('#tabFocus').onclick=function(){ selectedMode='work'; $('#tabFocus').classList.add('active'); $('#tabBreak').classList.remove('active'); $('#subText').textContent='Focus time.'; updateTimeText(S.sessionMinutes*60*1000); if(Timer.mode==='idle') Timer.reset(); };
   $('#tabBreak').onclick=function(){ selectedMode='break'; $('#tabBreak').classList.add('active'); $('#tabFocus').classList.remove('active'); var b=effBreak(S.sessionMinutes); $('#subText').textContent=b>0?'Break time.':'Break disabled by policy'; updateTimeText(b*60*1000); if(Timer.mode==='idle') Timer.reset(); };
 
-  // Break controller
+  // Break controller adjusts running break smoothly
   function updateBreakBadge(){ var badge=$('#breakLenBadge'); if(badge) badge.textContent=(S.breakMinutes|0)+'m'; }
   $('#breakDec').onclick=function(){
     var old=S.breakMinutes; S.breakMinutes=clamp(S.breakMinutes-1,0,120); $('#breakLenInput').value=S.breakMinutes; save(); updateBreakBadge();
@@ -553,7 +608,7 @@ function wire(){
   };});
   $('#bgClear').onclick=function(){ S.background=deepClone(DEF.background); save(); applyBackground(); };
 
-  // Notion sync panel
+  // Notion sync inputs
   $('#syncEndpoint').value=S.notionSync.endpoint||''; $('#syncDb').value=S.notionSync.databaseId||''; $('#syncKey').value=S.notionSync.widgetKey||''; $('#syncEnable').checked=!!S.notionSync.enabled;
   $('#syncEndpoint').onchange=function(e){ S.notionSync.endpoint=e.target.value.trim(); save(); };
   $('#syncDb').onchange=function(e){ S.notionSync.databaseId=e.target.value.trim(); save(); };
