@@ -26,9 +26,10 @@
   @keyframes hue{from{filter:hue-rotate(0deg) blur(40px)}to{filter:hue-rotate(360deg) blur(40px)}}
   #bgImage,#bgVideo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 
-  /* TOP BAR (timezone only) */
-  .topbar{position:fixed;inset:16px 16px auto 16px;display:flex;justify-content:flex-end;align-items:center;gap:12px;color:var(--muted);font-weight:600;z-index:5}
-  .crumb{opacity:.85}
+  /* TOP BAR: small live clock + timezone */
+  .topbar{position:fixed;inset:12px 16px auto 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;color:var(--muted);font-weight:600;z-index:5}
+  .top-left,.top-right{display:flex;gap:12px;align-items:center}
+  .clock{font-variant-numeric:tabular-nums;font-weight:700;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.15);padding:4px 8px;border-radius:8px;color:#fff}
 
   /* HERO */
   .hero{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:18px}
@@ -38,11 +39,11 @@
   .focus-tabs button{appearance:none;background:transparent;border:none;color:var(--soft);font-weight:800;letter-spacing:.18em;text-transform:uppercase;cursor:pointer;padding:6px 8px;font-size:13px}
   .focus-tabs button.active{color:#fff}
 
-  /* Mini break controller */
-  .mini-ctrl{display:inline-flex;gap:6px;align-items:center;margin-left:8px}
-  .mini-btn{padding:4px 8px;border:1px solid rgba(255,255,255,.25);border-radius:8px;background:rgba(0,0,0,.25);color:#fff;cursor:pointer;font-weight:700;font-size:12px}
-  .mini-btn:hover{background:rgba(255,255,255,.15)}
-  .mini-badge{padding:4px 8px;border:1px solid rgba(255,255,255,.25);border-radius:999px;font-size:11px;color:#fff;background:rgba(0,0,0,.25)}
+  /* Compact break controller */
+  .mini-ctrl{display:inline-flex;align-items:center;margin-left:8px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.22);border-radius:999px}
+  .mini-btn{padding:3px 8px;border:none;background:transparent;color:#fff;cursor:pointer;font-weight:800;font-size:12px}
+  .mini-btn:hover{background:rgba(255,255,255,.12)}
+  .mini-val{padding:3px 8px;font-size:12px;opacity:.95}
 
   .time{font-size:clamp(48px,16vw,180px);font-weight:800;line-height:1;letter-spacing:.02em;text-shadow:0 10px 40px rgba(0,0,0,.45)}
   .subtitle{margin-top:8px;font-size:clamp(16px,2.5vw,28px);color:#fff;text-shadow:0 8px 30px rgba(0,0,0,.5)}
@@ -72,18 +73,18 @@
     box-shadow:0 10px 30px rgba(0,0,0,.25);
   }
 
-  /* BOTTOM BAR (action buttons) */
+  /* Bottom bar */
   .bottom{position:fixed;inset:auto 16px 14px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--muted);z-index:5;flex-wrap:wrap}
   .links{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
   .quickbtn,.iconbtn{background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.15);color:#fff;padding:6px 10px;border-radius:10px;font-weight:600;cursor:pointer}
   .quickbtn:hover,.iconbtn:hover{background:rgba(255,255,255,.15)}
   .hidden{display:none}
 
-  /* Centered quote (moved from bottom) */
+  /* Centered quote */
   .quote{margin-top:18px;text-align:center;max-width:min(900px,90vw);font-size:14px;color:#fff;text-shadow:0 6px 24px rgba(0,0,0,.55)}
   .quote .author{opacity:.8;margin-left:6px}
 
-  /* PANELS */
+  /* Panels */
   .panel{position:fixed;right:16px;top:70px;bottom:16px;width:min(720px,92vw);background:var(--panel);border:1px solid var(--panelBorder);border-radius:14px;backdrop-filter:blur(16px) saturate(120%);padding:14px;overflow:auto;display:none;z-index:6}
   .panel.active{display:block}
   h2{margin:4px 0 10px 0;font-size:20px}
@@ -95,7 +96,7 @@
   th,td{padding:8px 6px;border-bottom:1px solid var(--panelBorder);font-size:13px;text-align:left}
   .notice{font-size:12px;color:var(--soft)}
 
-  /* Toast (in-app message) */
+  /* Toast */
   .toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%) translateY(10px);background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.25);padding:10px 14px;border-radius:10px;color:#fff;font-weight:700;opacity:0;pointer-events:none;transition:opacity .25s, transform .25s;z-index:7}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 </style>
@@ -108,9 +109,14 @@
     <video id="bgVideo" muted autoplay loop playsinline style="display:none"></video>
   </div>
 
-  <!-- TOP BAR (timezone only) -->
+  <!-- TOP BAR -->
   <div class="topbar">
-    <span id="tzLabel" class="crumb"></span>
+    <div class="top-left">
+      <span id="nowClock" class="clock">--:--:--</span>
+    </div>
+    <div class="top-right">
+      <span id="tzLabel"></span>
+    </div>
   </div>
 
   <!-- HERO -->
@@ -119,13 +125,11 @@
       <div class="focus-tabs">
         <button id="tabFocus" class="active">FOCUS</button>
         <button id="tabBreak">BREAK</button>
-
-        <!-- Mini controller beside BREAK -->
+        <!-- compact break length controller -->
         <span class="mini-ctrl" id="breakCtrl">
           <button class="mini-btn" id="breakDec" title="Shorter break">−</button>
-          <span id="breakLenBadge" class="mini-badge">5m</span>
+          <span id="breakLenBadge" class="mini-val">5m</span>
           <button class="mini-btn" id="breakInc" title="Longer break">+</button>
-          <button class="mini-btn" id="breakQuickStart" title="Start/Toggle break">▶</button>
         </span>
       </div>
     </div>
@@ -139,8 +143,8 @@
 
     <div class="cta-row">
       <button id="startStop" class="cta">START</button>
-      <!-- Restart → Reset (does not start, no partial logging) -->
-      <button id="resetBtn" class="cta secondary" title="Reset timer back to the set time">⟲ RESET</button>
+      <!-- RESET: returns to planned time, does not start, no logging -->
+      <button id="resetBtn" class="cta secondary" title="Reset to the set time">⟲ RESET</button>
     </div>
 
     <!-- Centered quote -->
@@ -151,7 +155,7 @@
     </audio>
   </main>
 
-  <!-- BOTTOM (actions) -->
+  <!-- BOTTOM -->
   <div class="bottom">
     <div class="links" id="leftLinks">
       <button id="openNotes" class="quickbtn">Notes</button>
@@ -194,7 +198,7 @@
       <button class="iconbtn" data-bg="color">Solid color…</button>
       <button class="iconbtn" id="bgClear">Reset</button>
     </div>
-    <div class="notice">Tip: add <code>&transparent=1</code> in the URL for transparent background in Notion (when embedded via iframe).</div>
+    <div class="notice">Tip: add <code>&transparent=1</code> in the URL for transparent background (when embedded via iframe).</div>
   </section>
 
   <section id="panel-settings" class="panel">
@@ -243,7 +247,7 @@
     <div class="notice">Sends daily totals (date, minutes, goal, usedFreeDay) to your endpoint. Keep your Notion token server-side.</div>
   </section>
 
-  <!-- In-app toast -->
+  <!-- Toast -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <script>
@@ -264,6 +268,7 @@ function fmtHM(ms){
   var h=Math.floor(ms/3600), m=Math.floor((ms%3600)/60), s=ms%60;
   return (h?String(h).padStart(2,'0')+":" :"")+String(m).padStart(2,'0')+":"+String(s).padStart(2,'0');
 }
+function hms(){ var d=new Date(); return d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
 function showToast(msg){
   var t=$('#toast'); if(!t) return; t.textContent=msg; t.classList.add('show');
   clearTimeout(showToast._tid); showToast._tid=setTimeout(function(){t.classList.remove('show');},2500);
@@ -282,11 +287,7 @@ var DEF={
   updatedAtMs:0
 };
 function load(){ try{ var raw=localStorage.getItem(LS_KEY); S = raw? Object.assign({}, DEF, JSON.parse(raw)) : deepClone(DEF);}catch(e){ S=deepClone(DEF);} normalize(); }
-function save(){
-  S.updatedAtMs = Date.now();
-  localStorage.setItem(LS_KEY, JSON.stringify(S));
-  scheduleCloudSave();
-}
+function save(){ S.updatedAtMs = Date.now(); localStorage.setItem(LS_KEY, JSON.stringify(S)); scheduleCloudSave(); }
 function normalize(){
   S.goalMinutes=clamp(+S.goalMinutes||25,10,600);
   S.sessionMinutes=clamp(+S.sessionMinutes||25,1,300);
@@ -320,19 +321,12 @@ function effBreak(mins){ return (S.breakPolicy==='never'?0 : S.breakPolicy==='al
 
 /* ===== Notifications ===== */
 function canNotify(){ return S.notifyEnabled && 'Notification' in window; }
-function ensurePermission(){
-  if(!canNotify()) return;
-  if(Notification.permission==='default'){
-    Notification.requestPermission().catch(function(){});
-  }
-}
+function ensurePermission(){ if(!canNotify()) return; if(Notification.permission==='default'){ Notification.requestPermission().catch(function(){}); } }
 function notifyDesktop(title, body){
   if(!canNotify()) return;
   var doShow=function(){ try{ new Notification(title,{body:body}); }catch(_){ } };
   if(Notification.permission==='granted') doShow();
-  else if(Notification.permission==='default'){
-    Notification.requestPermission().then(function(p){ if(p==='granted') doShow(); });
-  }
+  else if(Notification.permission==='default'){ Notification.requestPermission().then(function(p){ if(p==='granted') doShow(); }); }
 }
 
 /* ===== Timer ===== */
@@ -353,15 +347,12 @@ var Timer={
     if(this.mode==='work'){
       var mins=Math.round(this.durationMs/60000);
       var d=getDay(todayStr()); d.minutes+=mins; save(); refreshStats(); queueSync(todayStr());
-      showToast('Focus complete • '+mins+' min logged');
-      notifyDesktop('Focus complete', mins+' minutes logged');
+      showToast('Focus complete • '+mins+' min logged'); notifyDesktop('Focus complete', mins+' minutes logged');
       var b=effBreak(S.sessionMinutes);
       if(b>0){ this.mode='break'; this.durationMs=b*60*1000; this.remainingMs=this.durationMs; this.endAt=performance.now()+this.remainingMs; updateModeLabels(); this.tick(); }
       else { this.reset(); }
     } else {
-      showToast('Break over • Back to focus');
-      notifyDesktop('Break over', 'Time to focus again');
-      this.reset();
+      showToast('Break over • Back to focus'); notifyDesktop('Break over', 'Time to focus again'); this.reset();
     }
   }
 };
@@ -399,13 +390,6 @@ function refreshStats(){
     tr.innerHTML='<td>'+new Date(d.date+"T00:00:00").toLocaleDateString([], {weekday:"short", month:"short", day:"numeric"})+'</td><td>'+d.minutes+'</td><td>'+(meet?'Yes':'No')+'</td><td>'+(d.usedFreeDay?'Yes':'No')+'</td>';
     tb.appendChild(tr);
   });
-
-  if(window.Chart){
-    var ctx=$('#chart').getContext('2d'); var last30=[], labels=[]; var t=todayStr();
-    for(var i=29;i>=0;i--){ var date=addDays(t,-i); var dd=S.days.find(function(x){return x.date===date;})||{minutes:0}; last30.push(dd.minutes); var dt=new Date(date+"T00:00:00"); labels.push(dt.toLocaleDateString([], {month:'short', day:'numeric'})); }
-    if(window._chart) window._chart.destroy();
-    window._chart=new Chart(ctx,{type:'bar',data:{labels:labels,datasets:[{label:'Minutes',data:last30}]},options:{responsive:true,maintainAspectRatio:false}});
-  }
 }
 
 /* ===== Notion sync (optional) ===== */
@@ -430,9 +414,7 @@ var firebaseConfig = {
   authDomain: "streak-clock.firebaseapp.com",
   projectId: "streak-clock",
   appId: "1:131829224528:web:e1c75d85e1311c30026d55"
-  // optional: storageBucket, messagingSenderId, measurementId
 };
-
 var CLOUD = {enabled:false, app:null, auth:null, db:null, user:null, unsub:null};
 function initCloud(){
   try{
@@ -471,28 +453,31 @@ function updateAuthUI(){
   }
 }
 function profileRef(){ return CLOUD.db.collection('users').doc(CLOUD.user.uid).collection('profiles').doc(NS); }
+
+/* IMPORTANT: avoid interrupting a running timer when cloud sync updates.
+   Only reset if the timer is IDLE. */
+function applyRemoteState(remote){
+  S = Object.assign({}, S, remote);
+  localStorage.setItem(LS_KEY, JSON.stringify(S));
+  applyBackground();
+  if(Timer.mode==='idle'){ Timer.reset(); }
+  refreshStats();
+}
+
 function syncFromCloud(){
   var ref=profileRef();
   ref.get().then(function(snap){
     if(snap.exists){
-      var data=snap.data();
-      var remote=data.state||data;
-      if((remote.updatedAtMs||0) >= (S.updatedAtMs||0)){
-        S = Object.assign({}, S, remote);
-        localStorage.setItem(LS_KEY, JSON.stringify(S));
-        applyBackground(); Timer.reset(); refreshStats(); setQuote();
-      }else{ saveToCloud(); }
+      var data=snap.data(); var remote=data.state||data;
+      if((remote.updatedAtMs||0) >= (S.updatedAtMs||0)){ applyRemoteState(remote); }
+      else { saveToCloud(); }
     }else{ saveToCloud(); }
   }).catch(function(e){ console.warn('Initial cloud load failed:', e); });
 
   CLOUD.unsub = ref.onSnapshot(function(doc){
     if(!doc.exists) return;
     var d=doc.data(); var remote=d.state||d;
-    if((remote.updatedAtMs||0) > (S.updatedAtMs||0)){
-      S = Object.assign({}, S, remote);
-      localStorage.setItem(LS_KEY, JSON.stringify(S));
-      applyBackground(); Timer.reset(); refreshStats();
-    }
+    if((remote.updatedAtMs||0) > (S.updatedAtMs||0)){ applyRemoteState(remote); }
   });
 }
 var cloudTimer=null;
@@ -514,29 +499,30 @@ function wire(){
   document.addEventListener('keydown',function(e){ if(e.key==='Escape') hidePanels(); });
 
   // Tabs
-  $('#tabFocus').onclick=function(){ selectedMode='work'; $('#tabFocus').classList.add('active'); $('#tabBreak').classList.remove('active'); $('#subText').textContent='Focus time.'; updateTimeText(S.sessionMinutes*60*1000); if(Timer.mode!=='idle') Timer.reset(); };
-  $('#tabBreak').onclick=function(){ selectedMode='break'; $('#tabBreak').classList.add('active'); $('#tabFocus').classList.remove('active'); var b=effBreak(S.sessionMinutes); $('#subText').textContent=b>0?'Break time.':'Break disabled by policy'; updateTimeText(b*60*1000); if(Timer.mode!=='idle') Timer.reset(); };
+  $('#tabFocus').onclick=function(){ selectedMode='work'; $('#tabFocus').classList.add('active'); $('#tabBreak').classList.remove('active'); $('#subText').textContent='Focus time.'; updateTimeText(S.sessionMinutes*60*1000); if(Timer.mode==='idle') Timer.reset(); };
+  $('#tabBreak').onclick=function(){ selectedMode='break'; $('#tabBreak').classList.add('active'); $('#tabFocus').classList.remove('active'); var b=effBreak(S.sessionMinutes); $('#subText').textContent=b>0?'Break time.':'Break disabled by policy'; updateTimeText(b*60*1000); if(Timer.mode==='idle') Timer.reset(); };
 
-  // Mini break controller
+  // Break controller
   function updateBreakBadge(){ var badge=$('#breakLenBadge'); if(badge) badge.textContent=(S.breakMinutes|0)+'m'; }
-  $('#breakDec').onclick=function(){ S.breakMinutes=clamp(S.breakMinutes-1,0,120); $('#breakLenInput').value=S.breakMinutes; save(); updateBreakBadge(); if(selectedMode==='break') updateTimeText(effBreak(S.sessionMinutes)*60*1000); };
-  $('#breakInc').onclick=function(){ S.breakMinutes=clamp(S.breakMinutes+1,0,120); $('#breakLenInput').value=S.breakMinutes; save(); updateBreakBadge(); if(selectedMode==='break') updateTimeText(effBreak(S.sessionMinutes)*60*1000); };
-  $('#breakQuickStart').onclick=function(){
-    selectedMode='break'; $('#tabBreak').classList.add('active'); $('#tabFocus').classList.remove('active');
-    if(Timer.mode==='idle') Timer.start('break');
-    else if(Timer.mode==='break') { if($('#startStop').textContent==='PAUSE') Timer.pause(); else Timer.resume(); }
-    else Timer.pause(); // if in work, pause first
+  $('#breakDec').onclick=function(){
+    var old=S.breakMinutes; S.breakMinutes=clamp(S.breakMinutes-1,0,120); $('#breakLenInput').value=S.breakMinutes; save(); updateBreakBadge();
+    if(Timer.mode==='break'){ var delta=(S.breakMinutes-old)*60*1000; Timer.remainingMs=Math.max(0,Timer.remainingMs+delta); Timer.endAt=performance.now()+Timer.remainingMs; updateTimeText(Timer.remainingMs); }
+    if(selectedMode==='break' && Timer.mode==='idle') updateTimeText(effBreak(S.sessionMinutes)*60*1000);
+  };
+  $('#breakInc').onclick=function(){
+    var old=S.breakMinutes; S.breakMinutes=clamp(S.breakMinutes+1,0,120); $('#breakLenInput').value=S.breakMinutes; save(); updateBreakBadge();
+    if(Timer.mode==='break'){ var delta=(S.breakMinutes-old)*60*1000; Timer.remainingMs=Math.max(0,Timer.remainingMs+delta); Timer.endAt=performance.now()+Timer.remainingMs; updateTimeText(Timer.remainingMs); }
+    if(selectedMode==='break' && Timer.mode==='idle') updateTimeText(effBreak(S.sessionMinutes)*60*1000);
   };
   updateBreakBadge();
 
   // Controls
   $('#startStop').onclick=function(){ if(Timer.mode==='idle') Timer.start(selectedMode); else if(Timer.mode==='paused') Timer.resume(); else Timer.pause(); };
-  $('#resetBtn').onclick=function(){ Timer.reset(); }; // reset only
+  $('#resetBtn').onclick=function(){ Timer.reset(); };
 
   // Settings
   $('#sessionInput').onchange=function(e){ S.sessionMinutes=clamp(+e.target.value||25,1,300); save(); if(selectedMode==='work') updateTimeText(S.sessionMinutes*60*1000); if(Timer.mode==='idle') Timer.reset(); };
   $('#goalInput').onchange=function(e){ S.goalMinutes=clamp(+e.target.value||25,10,600); save(); refreshStats(); queueSync(todayStr()); };
-
   Array.prototype.forEach.call(document.querySelectorAll('input[name="breakPolicy"]'),function(r){
     r.checked=(r.value===S.breakPolicy);
     r.addEventListener('change',function(){ S.breakPolicy=document.querySelector('input[name="breakPolicy"]:checked').value; save(); if(selectedMode==='break') updateTimeText(effBreak(S.sessionMinutes)*60*1000); });
@@ -548,7 +534,7 @@ function wire(){
   $('#notifyEnable').checked=!!S.notifyEnabled;
   $('#notifyEnable').onchange=function(e){ S.notifyEnabled=!!e.target.checked; save(); if(S.notifyEnabled) ensurePermission(); };
 
-  // Free day tools
+  // Free-day tools
   $('#applyFreeYesterday').onclick=function(){ if(S.freeDayBank<=0){ alert("No free days in bank."); return; } var y=addDays(todayStr(),-1); var d=getDay(y); if(isSuccess(d)){ alert("Yesterday already counts as success."); return; } d.usedFreeDay=true; S.freeDayBank--; save(); refreshStats(); queueSync(y); };
   $('#manageMisses').onclick=function(){ var missed=[].concat(S.days).filter(function(d){return !isSuccess(d);}).slice(-60); if(!missed.length){ alert("No missed days to cover. 🎉"); return; } var input=prompt("Free days: "+S.freeDayBank+"\nDates to cover (comma-separated YYYY-MM-DD):\n"+missed.map(function(d){return "• "+d.date+" ("+d.minutes+"m)";}).join('\n')); if(!input) return; var want=input.split(',').map(function(s){return s.trim();}).filter(Boolean); for(var i=0;i<want.length;i++){ var dt=want[i]; var dd=getDay(dt); if(!isSuccess(dd)&&S.freeDayBank>0){ dd.usedFreeDay=true; S.freeDayBank--; queueSync(dt); } } save(); refreshStats(); };
 
@@ -594,10 +580,12 @@ function boot(){
   initCloud();
   ensurePermission();
 
+  // Live small clock + title
   setInterval(function(){
     var planned=(selectedMode==='work'? S.sessionMinutes : effBreak(S.sessionMinutes))*60000;
     var ms=(Timer.mode==='idle'||Timer.mode==='paused')? (Timer.mode==='paused'?Timer.remainingMs:planned) : Timer.remainingMs;
     document.title = fmtHM(ms)+' • Focus Clock';
+    var c=$('#nowClock'); if(c) c.textContent=hms();
   },1000);
 }
 boot();
