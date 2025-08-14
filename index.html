@@ -258,7 +258,7 @@
 /* ===== Flags ===== */
 var Q = new URLSearchParams(location.search);
 var NS = Q.get('ns') || 'default';
-var AUTO_LOGIN = Q.get('autologin') === '1';
+var AUT0_LOGIN = Q.get('autologin') === '1'; // auto-login in new tab
 var TRANSPARENT = Q.get('transparent') === '1';
 if(TRANSPARENT) document.body.style.background='transparent';
 
@@ -418,7 +418,6 @@ var QUOTES=[["You cannot swim for new horizons until you have courage to lose si
 function setQuote(){ var qa=QUOTES[(new Date().getDate())%QUOTES.length]; $('#quoteBox').innerHTML='“'+qa[0]+'” <span class="author">— '+qa[1]+'</span>'; }
 
 /* ===== Cloud auth + sync (Firebase) ===== */
-/* Using your current config (replace here only if you change projects) */
 var firebaseConfig = {
   apiKey: "AIzaSyC7fhspLB7sNThCwRt2k8qsKcAOb_Fr6dU",
   authDomain: "streak-clock.firebaseapp.com",
@@ -487,7 +486,8 @@ function updateAuthUI(){
       // Try popup first
       CLOUD.auth.signInWithPopup(provider)
         .then(function (result) {
-          // If opened from an iframe as a new tab, send token back
+          // If opened from another window (e.g., iframe requested new tab),
+          // send token back so opener can finish sign-in.
           try {
             var cred = result.credential ||
               (firebase.auth.GoogleAuthProvider.credentialFromResult &&
@@ -503,30 +503,26 @@ function updateAuthUI(){
         .catch(function(e){
           var text = String(e && (e.code||e.message||e));
           var low  = text.toLowerCase();
-          var popupBlocked =
-            low.includes('popup-blocked') ||
-            low.includes('popup_closed_by_user') ||
-            low.includes('operation-not-supported');
+          var popupBlocked = low.includes('popup-blocked') || low.includes('popup_closed_by_user') || low.includes('operation-not-supported');
           var canRedirect = isTop() && storageAvailable('sessionStorage');
 
           if (popupBlocked && canRedirect) {
-            // Safe fallback only when top-level & sessionStorage works
             return CLOUD.auth.signInWithRedirect(provider);
           }
 
-          // Otherwise show hint with new-tab option
           authErrorHint(
             'Unable to sign in here. This usually happens in iframes (e.g., Notion) or when third-party storage is blocked. '+
             'Open the app in a new tab to complete sign-in.',
             true
           );
+
           console.warn('Auth error:', e);
         });
     };
   }
 }
 
-// Receive access token from a new-tab sign-in and complete auth in this window (e.g., iframe)
+// Receive access token from a new-tab sign-in and complete auth in this window
 window.addEventListener('message', function (e) {
   var d = e && e.data || {};
   if (d.type === 'auth-ok-token' && d.accessToken && CLOUD.enabled && !CLOUD.user) {
@@ -664,9 +660,9 @@ function boot(){
   initCloud();
   ensurePermission();
 
-  // Auto-login in a fresh tab (new-tab fallback)
+  // Auto-kick sign-in when opened with ?autologin=1 (the new-tab flow)
   setTimeout(function(){
-    if (AUTO_LOGIN && CLOUD.enabled && !CLOUD.user) {
+    if (AUT0_LOGIN && CLOUD.enabled && !CLOUD.user) {
       var btn = document.getElementById('authToggle');
       if (btn) btn.click();
     }
@@ -674,4 +670,13 @@ function boot(){
 
   // Live small clock + title
   setInterval(function(){
-    var planned=(selectedMode==='work'? S.sessionMinutes : effBreak(S.sessionMinutes))*600
+    var planned=(selectedMode==='work'? S.sessionMinutes : effBreak(S.sessionMinutes))*60000;
+    var ms=(Timer.mode==='idle'||Timer.mode==='paused')? (Timer.mode==='paused'?Timer.remainingMs:planned) : Timer.remainingMs;
+    document.title = fmtHM(ms)+' • Focus Clock';
+    var c=$('#nowClock'); if(c) c.textContent=hms();
+  },1000);
+}
+boot();
+</script>
+</body>
+</html>
