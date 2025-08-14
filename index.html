@@ -258,6 +258,7 @@
 /* ===== Flags ===== */
 var Q = new URLSearchParams(location.search);
 var NS = Q.get('ns') || 'default';
+var AUTO_LOGIN = Q.get('autologin') === '1';
 var TRANSPARENT = Q.get('transparent') === '1';
 if(TRANSPARENT) document.body.style.background='transparent';
 
@@ -417,6 +418,7 @@ var QUOTES=[["You cannot swim for new horizons until you have courage to lose si
 function setQuote(){ var qa=QUOTES[(new Date().getDate())%QUOTES.length]; $('#quoteBox').innerHTML='“'+qa[0]+'” <span class="author">— '+qa[1]+'</span>'; }
 
 /* ===== Cloud auth + sync (Firebase) ===== */
+/* Using your current config (replace here only if you change projects) */
 var firebaseConfig = {
   apiKey: "AIzaSyC7fhspLB7sNThCwRt2k8qsKcAOb_Fr6dU",
   authDomain: "streak-clock.firebaseapp.com",
@@ -433,7 +435,6 @@ function initCloud(){
     CLOUD.db   = firebase.firestore();
     CLOUD.enabled = true;
 
-    // Prefer persistent local auth
     CLOUD.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(function(){});
 
     CLOUD.auth.onAuthStateChanged(function(user){
@@ -452,9 +453,14 @@ function authErrorHint(msg, offerNewTab){
   box.classList.add('show');
   if(offerNewTab){
     setTimeout(function(){
-      var b=document.getElementById('authOpenTab');
-      if(b) b.onclick=function(){ window.open(window.location.href.split('#')[0], '_blank'); };
-    },0);
+      var b = document.getElementById('authOpenTab');
+      if(b) b.onclick = function () {
+        // open same app with a flag that will auto-click Sign in
+        var url = window.location.href.split('#')[0];
+        var glue = url.includes('?') ? '&' : '?';
+        window.open(url + glue + 'autologin=1', '_blank');
+      };
+    }, 0);
   }
 }
 
@@ -479,34 +485,57 @@ function updateAuthUI(){
       provider.setCustomParameters({prompt:'select_account'});
 
       // Try popup first
-      CLOUD.auth.signInWithPopup(provider).catch(function(e){
-        var text = String(e && (e.code||e.message||e));
-        var low  = text.toLowerCase();
+      CLOUD.auth.signInWithPopup(provider)
+        .then(function (result) {
+          // If opened from an iframe as a new tab, send token back
+          try {
+            var cred = result.credential ||
+              (firebase.auth.GoogleAuthProvider.credentialFromResult &&
+               firebase.auth.GoogleAuthProvider.credentialFromResult(result));
+            var at = cred && cred.accessToken;
+            if (at && window.opener) {
+              window.opener.postMessage({ type: 'auth-ok-token', accessToken: at }, '*');
+            } else if (window.opener) {
+              window.opener.postMessage({ type: 'auth-ok' }, '*');
+            }
+          } catch (_) {}
+        })
+        .catch(function(e){
+          var text = String(e && (e.code||e.message||e));
+          var low  = text.toLowerCase();
+          var popupBlocked =
+            low.includes('popup-blocked') ||
+            low.includes('popup_closed_by_user') ||
+            low.includes('operation-not-supported');
+          var canRedirect = isTop() && storageAvailable('sessionStorage');
 
-        // If popup blocked OR environment doesn’t support popups
-        var popupBlocked = low.includes('popup-blocked') || low.includes('popup_closed_by_user') || low.includes('operation-not-supported');
+          if (popupBlocked && canRedirect) {
+            // Safe fallback only when top-level & sessionStorage works
+            return CLOUD.auth.signInWithRedirect(provider);
+          }
 
-        // The specific state error you saw (redirect flow)
-        var missingState = low.includes('missing initial state');
-
-        // If we can try redirect safely (top-level + sessionStorage works), do it.
-        if(popupBlocked && isTop() && storageAvailable('sessionStorage')){
-          return CLOUD.auth.signInWithRedirect(provider);
-        }
-
-        // Otherwise show a helpful hint and offer a new-tab sign-in
-        authErrorHint(
-          'Unable to sign in here. This usually happens in iframes (e.g., Notion) or when third-party storage is blocked. '+
-          'Open the app in a new tab to complete sign-in.',
-          true
-        );
-
-        // Log details for debugging
-        console.warn('Auth error:', e);
-      });
+          // Otherwise show hint with new-tab option
+          authErrorHint(
+            'Unable to sign in here. This usually happens in iframes (e.g., Notion) or when third-party storage is blocked. '+
+            'Open the app in a new tab to complete sign-in.',
+            true
+          );
+          console.warn('Auth error:', e);
+        });
     };
   }
 }
+
+// Receive access token from a new-tab sign-in and complete auth in this window (e.g., iframe)
+window.addEventListener('message', function (e) {
+  var d = e && e.data || {};
+  if (d.type === 'auth-ok-token' && d.accessToken && CLOUD.enabled && !CLOUD.user) {
+    var cred = firebase.auth.GoogleAuthProvider.credential(null, d.accessToken);
+    CLOUD.auth.signInWithCredential(cred).catch(function (err) {
+      console.warn('signInWithCredential failed:', err);
+    });
+  }
+});
 
 function profileRef(){ return CLOUD.db.collection('users').doc(CLOUD.user.uid).collection('profiles').doc(NS); }
 
@@ -635,15 +664,14 @@ function boot(){
   initCloud();
   ensurePermission();
 
+  // Auto-login in a fresh tab (new-tab fallback)
+  setTimeout(function(){
+    if (AUTO_LOGIN && CLOUD.enabled && !CLOUD.user) {
+      var btn = document.getElementById('authToggle');
+      if (btn) btn.click();
+    }
+  }, 600);
+
   // Live small clock + title
   setInterval(function(){
-    var planned=(selectedMode==='work'? S.sessionMinutes : effBreak(S.sessionMinutes))*60000;
-    var ms=(Timer.mode==='idle'||Timer.mode==='paused')? (Timer.mode==='paused'?Timer.remainingMs:planned) : Timer.remainingMs;
-    document.title = fmtHM(ms)+' • Focus Clock';
-    var c=$('#nowClock'); if(c) c.textContent=hms();
-  },1000);
-}
-boot();
-</script>
-</body>
-</html>
+    var planned=(selectedMode==='work'? S.sessionMinutes : effBreak(S.sessionMinutes))*600
