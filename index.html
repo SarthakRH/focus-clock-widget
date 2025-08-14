@@ -26,7 +26,7 @@
   @keyframes hue{from{filter:hue-rotate(0deg) blur(40px)}to{filter:hue-rotate(360deg) blur(40px)}}
   #bgImage,#bgVideo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 
-  /* TOP BAR (kept only for timezone) */
+  /* TOP BAR (timezone only) */
   .topbar{position:fixed;inset:16px 16px auto 16px;display:flex;justify-content:flex-end;align-items:center;gap:12px;color:var(--muted);font-weight:600;z-index:5}
   .crumb{opacity:.85}
 
@@ -34,15 +34,21 @@
   .hero{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:18px}
   .tabs-line{width:min(900px,92vw);max-width:900px;position:relative;margin-bottom:12px}
   .tabs-line::before{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(255,255,255,.35);transform:translateY(-50%)}
-  .focus-tabs{position:relative;display:inline-flex;gap:28px;padding:0 14px}
+  .focus-tabs{position:relative;display:inline-flex;gap:14px;align-items:center;padding:0 14px}
   .focus-tabs button{appearance:none;background:transparent;border:none;color:var(--soft);font-weight:800;letter-spacing:.18em;text-transform:uppercase;cursor:pointer;padding:6px 8px;font-size:13px}
   .focus-tabs button.active{color:#fff}
+
+  /* Mini break controller */
+  .mini-ctrl{display:inline-flex;gap:6px;align-items:center;margin-left:8px}
+  .mini-btn{padding:4px 8px;border:1px solid rgba(255,255,255,.25);border-radius:8px;background:rgba(0,0,0,.25);color:#fff;cursor:pointer;font-weight:700;font-size:12px}
+  .mini-btn:hover{background:rgba(255,255,255,.15)}
+  .mini-badge{padding:4px 8px;border:1px solid rgba(255,255,255,.25);border-radius:999px;font-size:11px;color:#fff;background:rgba(0,0,0,.25)}
+
   .time{font-size:clamp(48px,16vw,180px);font-weight:800;line-height:1;letter-spacing:.02em;text-shadow:0 10px 40px rgba(0,0,0,.45)}
   .subtitle{margin-top:8px;font-size:clamp(16px,2.5vw,28px);color:#fff;text-shadow:0 8px 30px rgba(0,0,0,.5)}
 
   .cta{margin-top:20px;padding:12px 26px;border:1.8px solid rgba(255,255,255,.75);color:#fff;background:rgba(255,255,255,.12);border-radius:999px;font-weight:800;letter-spacing:.06em;cursor:pointer;backdrop-filter:blur(6px)}
   .cta:hover{background:rgba(255,255,255,.18)}
-  /* Controls row */
   .cta-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center}
   .cta.secondary{border-color:rgba(255,255,255,.55);background:rgba(255,255,255,.08)}
   .cta.secondary:hover{background:rgba(255,255,255,.14)}
@@ -66,12 +72,16 @@
     box-shadow:0 10px 30px rgba(0,0,0,.25);
   }
 
-  /* BOTTOM BAR (now holds all action buttons) */
+  /* BOTTOM BAR (action buttons) */
   .bottom{position:fixed;inset:auto 16px 14px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--muted);z-index:5;flex-wrap:wrap}
   .links{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
   .quickbtn,.iconbtn{background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.15);color:#fff;padding:6px 10px;border-radius:10px;font-weight:600;cursor:pointer}
   .quickbtn:hover,.iconbtn:hover{background:rgba(255,255,255,.15)}
   .hidden{display:none}
+
+  /* Centered quote (moved from bottom) */
+  .quote{margin-top:18px;text-align:center;max-width:min(900px,90vw);font-size:14px;color:#fff;text-shadow:0 6px 24px rgba(0,0,0,.55)}
+  .quote .author{opacity:.8;margin-left:6px}
 
   /* PANELS */
   .panel{position:fixed;right:16px;top:70px;bottom:16px;width:min(720px,92vw);background:var(--panel);border:1px solid var(--panelBorder);border-radius:14px;backdrop-filter:blur(16px) saturate(120%);padding:14px;overflow:auto;display:none;z-index:6}
@@ -98,7 +108,7 @@
     <video id="bgVideo" muted autoplay loop playsinline style="display:none"></video>
   </div>
 
-  <!-- TOP BAR (timezone only; removed Links/Tabs/Focus and top buttons) -->
+  <!-- TOP BAR (timezone only) -->
   <div class="topbar">
     <span id="tzLabel" class="crumb"></span>
   </div>
@@ -109,8 +119,17 @@
       <div class="focus-tabs">
         <button id="tabFocus" class="active">FOCUS</button>
         <button id="tabBreak">BREAK</button>
+
+        <!-- Mini controller beside BREAK -->
+        <span class="mini-ctrl" id="breakCtrl">
+          <button class="mini-btn" id="breakDec" title="Shorter break">−</button>
+          <span id="breakLenBadge" class="mini-badge">5m</span>
+          <button class="mini-btn" id="breakInc" title="Longer break">+</button>
+          <button class="mini-btn" id="breakQuickStart" title="Start/Toggle break">▶</button>
+        </span>
       </div>
     </div>
+
     <div id="timeText" class="time">25:00</div>
     <div id="subText" class="subtitle">Focus time.</div>
 
@@ -120,15 +139,19 @@
 
     <div class="cta-row">
       <button id="startStop" class="cta">START</button>
-      <button id="restartBtn" class="cta secondary" title="Start a fresh session now and log elapsed time">⟳ RESTART</button>
+      <!-- Restart → Reset (does not start, no partial logging) -->
+      <button id="resetBtn" class="cta secondary" title="Reset timer back to the set time">⟲ RESET</button>
     </div>
+
+    <!-- Centered quote -->
+    <div class="quote" id="quoteBox">“Small progress is still progress.” <span class="author">— Unknown</span></div>
 
     <audio id="ding" preload="auto">
       <source src="data:audio/wav;base64,UklGRjQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABY5YWFhYWFhYWFhYQAA" type="audio/wav">
     </audio>
   </main>
 
-  <!-- BOTTOM (moved all action buttons here; removed 'Custom image' label) -->
+  <!-- BOTTOM (actions) -->
   <div class="bottom">
     <div class="links" id="leftLinks">
       <button id="openNotes" class="quickbtn">Notes</button>
@@ -147,8 +170,6 @@
       <button class="iconbtn" id="openSync">🔗 Sync</button>
     </div>
   </div>
-
-  <div class="quote" id="quoteBox">“Small progress is still progress.” <span class="author">— Unknown</span></div>
 
   <!-- PANELS -->
   <section id="panel-stats" class="panel">
@@ -257,7 +278,7 @@ var DEF={
   autoApplyFreeDays:false, days:[], freeDayBank:0, runStartDate:null, runMilestonesAwarded:0, lastSeenDate:null,
   background:{mode:'gradient', color:'#0b0e14', imageDataUrl:null, videoUrl:''},
   notes:'', todos:'', notionSync:{enabled:false,endpoint:'',databaseId:'',widgetKey:''}, lastSynced:{},
-  notifyEnabled:false,               // NEW: desktop notifications toggle (default off)
+  notifyEnabled:false,
   updatedAtMs:0
 };
 function load(){ try{ var raw=localStorage.getItem(LS_KEY); S = raw? Object.assign({}, DEF, JSON.parse(raw)) : deepClone(DEF);}catch(e){ S=deepClone(DEF);} normalize(); }
@@ -307,14 +328,14 @@ function ensurePermission(){
 }
 function notifyDesktop(title, body){
   if(!canNotify()) return;
-  var doShow=function(){ try{ new Notification(title,{body:body}); }catch(_){ /* ignore */ } };
+  var doShow=function(){ try{ new Notification(title,{body:body}); }catch(_){ } };
   if(Notification.permission==='granted') doShow();
   else if(Notification.permission==='default'){
     Notification.requestPermission().then(function(p){ if(p==='granted') doShow(); });
   }
 }
 
-/* ===== Timer (with partial logging on RESTART) ===== */
+/* ===== Timer ===== */
 var selectedMode='work';
 var Timer={
   mode:'idle', durationMs:0, remainingMs:0, endAt:null, raf:null, prevMode:'work',
@@ -326,25 +347,6 @@ var Timer={
   pause:function(){ if(this.mode==='work'||this.mode==='break'){ this.remainingMs=Math.max(0,this.endAt-performance.now()); this.prevMode=this.mode; this.mode='paused'; cancelAnimationFrame(this.raf); $('#startStop').textContent='RESUME'; updateTimeText(this.remainingMs); $('#subText').textContent='Paused'; } },
   resume:function(){ if(this.mode==='paused'){ this.endAt=performance.now()+this.remainingMs; this.mode=this.prevMode||'work'; updateModeLabels(); this.tick(); } },
   reset:function(){ cancelAnimationFrame(this.raf); this.mode='idle'; this.remainingMs=(selectedMode==='work'? S.sessionMinutes: effBreak(S.sessionMinutes))*60*1000; updateTimeText(this.remainingMs); $('#startStop').textContent='START'; $('#subText').textContent= selectedMode==='work' ? 'Focus time.' : (effBreak(S.sessionMinutes)>0?'Break time.':'Break disabled by policy'); },
-  restart:function(mode){
-    cancelAnimationFrame(this.raf);
-    // NEW: log partial focus time before restarting
-    var wasWork = (this.mode==='work' || (this.mode==='paused' && this.prevMode==='work'));
-    if(wasWork){
-      var now = performance.now();
-      var left = (this.mode==='paused') ? this.remainingMs : Math.max(0,this.endAt - now);
-      var elapsedMs = Math.max(0, this.durationMs - left);
-      var mins = Math.round(elapsedMs/60000);
-      if(mins>0){
-        var d=getDay(todayStr()); d.minutes += mins; save(); refreshStats(); queueSync(todayStr());
-        showToast('Logged '+mins+' min • New session started');
-        notifyDesktop('Focus logged', mins+' minutes added to today');
-      }
-    }
-    this.mode='idle';
-    selectedMode = mode || selectedMode;
-    this.start(selectedMode);
-  },
   tick:function(){ var self=this; this.raf=requestAnimationFrame(function(){ self.tick(); }); var left=Math.max(0,this.endAt-performance.now()); this.remainingMs=left; updateTimeText(left); if(left<=0){ cancelAnimationFrame(this.raf); this.done(); } },
   done:function(){
     try{ var ding=$('#ding'); ding.currentTime=0; ding.play().catch(function(){});}catch(_){}
@@ -423,7 +425,6 @@ var QUOTES=[["You cannot swim for new horizons until you have courage to lose si
 function setQuote(){ var qa=QUOTES[(new Date().getDate())%QUOTES.length]; $('#quoteBox').innerHTML='“'+qa[0]+'” <span class="author">— '+qa[1]+'</span>'; }
 
 /* ===== Cloud auth + sync (Firebase) ===== */
-/* Your actual Firebase config — left intact as requested */
 var firebaseConfig = {
   apiKey: "AIzaSyC7fhspLB7sNThCwRt2k8qsKcAOb_Fr6dU",
   authDomain: "streak-clock.firebaseapp.com",
@@ -516,9 +517,21 @@ function wire(){
   $('#tabFocus').onclick=function(){ selectedMode='work'; $('#tabFocus').classList.add('active'); $('#tabBreak').classList.remove('active'); $('#subText').textContent='Focus time.'; updateTimeText(S.sessionMinutes*60*1000); if(Timer.mode!=='idle') Timer.reset(); };
   $('#tabBreak').onclick=function(){ selectedMode='break'; $('#tabBreak').classList.add('active'); $('#tabFocus').classList.remove('active'); var b=effBreak(S.sessionMinutes); $('#subText').textContent=b>0?'Break time.':'Break disabled by policy'; updateTimeText(b*60*1000); if(Timer.mode!=='idle') Timer.reset(); };
 
+  // Mini break controller
+  function updateBreakBadge(){ var badge=$('#breakLenBadge'); if(badge) badge.textContent=(S.breakMinutes|0)+'m'; }
+  $('#breakDec').onclick=function(){ S.breakMinutes=clamp(S.breakMinutes-1,0,120); $('#breakLenInput').value=S.breakMinutes; save(); updateBreakBadge(); if(selectedMode==='break') updateTimeText(effBreak(S.sessionMinutes)*60*1000); };
+  $('#breakInc').onclick=function(){ S.breakMinutes=clamp(S.breakMinutes+1,0,120); $('#breakLenInput').value=S.breakMinutes; save(); updateBreakBadge(); if(selectedMode==='break') updateTimeText(effBreak(S.sessionMinutes)*60*1000); };
+  $('#breakQuickStart').onclick=function(){
+    selectedMode='break'; $('#tabBreak').classList.add('active'); $('#tabFocus').classList.remove('active');
+    if(Timer.mode==='idle') Timer.start('break');
+    else if(Timer.mode==='break') { if($('#startStop').textContent==='PAUSE') Timer.pause(); else Timer.resume(); }
+    else Timer.pause(); // if in work, pause first
+  };
+  updateBreakBadge();
+
   // Controls
   $('#startStop').onclick=function(){ if(Timer.mode==='idle') Timer.start(selectedMode); else if(Timer.mode==='paused') Timer.resume(); else Timer.pause(); };
-  $('#restartBtn').onclick=function(){ Timer.restart(selectedMode); };
+  $('#resetBtn').onclick=function(){ Timer.reset(); }; // reset only
 
   // Settings
   $('#sessionInput').onchange=function(e){ S.sessionMinutes=clamp(+e.target.value||25,1,300); save(); if(selectedMode==='work') updateTimeText(S.sessionMinutes*60*1000); if(Timer.mode==='idle') Timer.reset(); };
@@ -529,7 +542,7 @@ function wire(){
     r.addEventListener('change',function(){ S.breakPolicy=document.querySelector('input[name="breakPolicy"]:checked').value; save(); if(selectedMode==='break') updateTimeText(effBreak(S.sessionMinutes)*60*1000); });
   });
   $('#breakThresholdInput').onchange=function(e){ S.breakThreshold=clamp(+e.target.value||30,1,300); save(); if(selectedMode==='break') updateTimeText(effBreak(S.sessionMinutes)*60*1000); };
-  $('#breakLenInput').onchange=function(e){ S.breakMinutes=clamp(+e.target.value||5,0,120); save(); if(selectedMode==='break') updateTimeText(effBreak(S.sessionMinutes)*60*1000); };
+  $('#breakLenInput').onchange=function(e){ S.breakMinutes=clamp(+e.target.value||5,0,120); save(); updateBreakBadge(); if(selectedMode==='break') updateTimeText(effBreak(S.sessionMinutes)*60*1000); };
 
   // Notifications
   $('#notifyEnable').checked=!!S.notifyEnabled;
@@ -566,7 +579,6 @@ function wire(){
   document.addEventListener('keydown',function(e){
     if(e.code==='Space'){ e.preventDefault(); $('#startStop').click(); }
     if(e.key==='r'||e.key==='R'){ Timer.reset(); }
-    if(e.key==='n'||e.key==='N'){ Timer.restart(selectedMode); }
   });
 }
 
@@ -580,7 +592,7 @@ function boot(){
   refreshStats();
   wire();
   initCloud();
-  ensurePermission(); // ask if notifications enabled
+  ensurePermission();
 
   setInterval(function(){
     var planned=(selectedMode==='work'? S.sessionMinutes : effBreak(S.sessionMinutes))*60000;
