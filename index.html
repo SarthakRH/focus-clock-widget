@@ -100,63 +100,9 @@
   .toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%) translateY(10px);background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.25);padding:10px 14px;border-radius:10px;color:#fff;font-weight:700;opacity:0;pointer-events:none;transition:opacity .25s, transform .25s;z-index:7}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-  /* Enhanced auth hint styles */
-  .auth-hint{
-    position:fixed;
-    left:50%;
-    top:70px;
-    transform:translateX(-50%);
-    background:rgba(220,38,127,.9);
-    border:1px solid rgba(255,255,255,.35);
-    padding:12px 16px;
-    border-radius:12px;
-    font-size:13px;
-    color:#fff;
-    display:none;
-    z-index:8;
-    max-width:90vw;
-    text-align:center;
-    backdrop-filter:blur(8px);
-    box-shadow:0 8px 32px rgba(0,0,0,.4);
-  }
+  /* Small inline alert for auth info */
+  .auth-hint{position:fixed;left:50%;top:70px;transform:translateX(-50%);background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.25);padding:8px 12px;border-radius:10px;font-size:12px;display:none;z-index:8}
   .auth-hint.show{display:block}
-  .auth-hint button{
-    margin-left:10px;
-    padding:4px 12px;
-    font-size:11px;
-    font-weight:700;
-    background:rgba(255,255,255,.2);
-    border:1px solid rgba(255,255,255,.4);
-    color:#fff;
-    border-radius:6px;
-    cursor:pointer;
-    text-transform:uppercase;
-    letter-spacing:.5px;
-  }
-  .auth-hint button:hover{background:rgba(255,255,255,.3);}
-
-  /* Auth status indicator */
-  .auth-status{
-    position:fixed;
-    top:12px;
-    left:50%;
-    transform:translateX(-50%);
-    background:rgba(0,0,0,.4);
-    border:1px solid rgba(255,255,255,.2);
-    padding:6px 12px;
-    border-radius:20px;
-    font-size:11px;
-    color:var(--muted);
-    display:none;
-    z-index:4;
-  }
-  .auth-status.show{display:block;}
-  .auth-status.connected{color:#4ade80;border-color:rgba(74,222,128,.3);}
-  .auth-status.error{color:#f87171;border-color:rgba(248,113,113,.3);}
-
-  /* Export/Import data buttons */
-  .data-controls{margin-top:10px;}
-  .data-controls button{margin:2px;}
 </style>
 </head>
 <body>
@@ -177,10 +123,7 @@
     </div>
   </div>
 
-  <!-- Auth Status Indicator -->
-  <div id="authStatus" class="auth-status"></div>
-
-  <!-- Enhanced auth hint -->
+  <!-- Inline auth note (Option B explains iframe behavior) -->
   <div id="authHint" class="auth-hint"></div>
 
   <!-- HERO -->
@@ -209,7 +152,7 @@
       <button id="resetBtn" class="cta secondary" title="Reset to the set time">⟲ RESET</button>
     </div>
 
-    <div class="quote" id="quoteBox">"Small progress is still progress." <span class="author">— Unknown</span></div>
+    <div class="quote" id="quoteBox">“Small progress is still progress.” <span class="author">— Unknown</span></div>
 
     <audio id="ding" preload="auto">
       <source src="data:audio/wav;base64,UklGRjQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABY5YWFhYWFhYWFhYQAA" type="audio/wav">
@@ -247,7 +190,7 @@
     </div>
     <canvas id="chart" height="170"></canvas>
     <table id="logTable"><thead><tr><th>Date</th><th>Minutes</th><th>Met goal?</th><th>Used free day?</th></tr></thead><tbody></tbody></table>
-    <div class="notice">If the chart is blank, that's fine—Chart.js isn't required for the timer to work.</div>
+    <div class="notice">If the chart is blank, that’s fine—Chart.js isn’t required for the timer to work.</div>
   </section>
 
   <section id="panel-bg" class="panel">
@@ -289,27 +232,13 @@
       <button id="manageMisses" class="iconbtn">Manage missed days…</button>
     </div>
 
-    <h3 style="margin:12px 0 6px;">Data Management</h3>
-    <div class="data-controls">
-      <button id="backupData" class="iconbtn">💾 Backup Data</button>
-      <button id="restoreData" class="iconbtn">📂 Restore Data</button>
-      <input id="restoreFile" type="file" accept="application/json" class="hidden">
-    </div>
-
     <h3 style="margin:12px 0 6px;">Notes & Todo (saved locally)</h3>
     <textarea id="notesBox" placeholder="Quick notes…"></textarea>
     <textarea id="todoBox" placeholder="Todo list (one per line)…"></textarea>
   </section>
 
   <section id="panel-sync" class="panel">
-    <h2>Cloud Sync & Notion Integration</h2>
-    
-    <div class="row" style="margin-bottom:12px;">
-      <button id="forceCloudSync" class="iconbtn">☁️ Force Cloud Sync</button>
-      <button id="clearCloudData" class="iconbtn">🗑️ Clear Cloud Data</button>
-    </div>
-
-    <h3>Notion Sync (optional)</h3>
+    <h2>Notion Sync (optional)</h2>
     <div class="row">
       <input id="syncEndpoint" placeholder="https://your-app.vercel.app/api/notion-sync" style="flex:1;min-width:240px">
       <input id="syncDb" placeholder="Notion Database ID" style="flex:1;min-width:200px">
@@ -326,16 +255,15 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <script>
-/* ===== Enhanced Flags & Environment Detection ===== */
+/* ===== Flags ===== */
 var Q = new URLSearchParams(location.search);
 var NS = Q.get('ns') || 'default';
-var AUTO_LOGIN = Q.get('autologin') === '1';
+var AUTO_LOGIN = Q.get('autologin') === '1';               // top-level auto-login helper
+var IN_IFRAME = (function(){ try { return window.top !== window.self; } catch (_) { return true; } })();
 var TRANSPARENT = Q.get('transparent') === '1';
-var FORCE_LOCAL = Q.get('local') === '1'; // Force local-only mode
-
 if(TRANSPARENT) document.body.style.background='transparent';
 
-/* ===== Enhanced Utils ===== */
+/* ===== Utils ===== */
 function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
 function $(s){ return document.querySelector(s); }
 function addDays(str,n){ var d=new Date(str+"T00:00:00"); d.setDate(d.getDate()+n); return d.toLocaleDateString('en-CA'); }
@@ -351,30 +279,12 @@ function showToast(msg){
   var t=$('#toast'); if(!t) return; t.textContent=msg; t.classList.add('show');
   clearTimeout(showToast._tid); showToast._tid=setTimeout(function(){t.classList.remove('show');},2500);
 }
-function isTop(){ try{ return window.top === window.self; } catch(_){ return false; } }
-function isIframe(){ return !isTop(); }
 function storageAvailable(type){
   try{ var s=window[type]; var x="__t"+Math.random(); s.setItem(x,"1"); var ok=s.getItem(x)==="1"; s.removeItem(x); return ok; }catch(e){ return false; }
 }
 
-// Enhanced environment detection
-function getEnvironment(){
-  var isInIframe = isIframe();
-  var hasLocalStorage = storageAvailable('localStorage');
-  var hasSessionStorage = storageAvailable('sessionStorage');
-  var isThirdPartyBlocked = !hasLocalStorage || !hasSessionStorage;
-  
-  return {
-    iframe: isInIframe,
-    localStorage: hasLocalStorage,
-    sessionStorage: hasSessionStorage,
-    thirdPartyBlocked: isThirdPartyBlocked,
-    canAuth: !isInIframe && hasSessionStorage && !isThirdPartyBlocked
-  };
-}
-
-/* ===== Enhanced State Management ===== */
-var LS_KEY="focusClock.hero.v3."+NS; // Updated version
+/* ===== State ===== */
+var LS_KEY="focusClock.hero.v2."+NS;
 var S=null;
 var DEF={
   goalMinutes:25, sessionMinutes:25,
@@ -383,41 +293,10 @@ var DEF={
   background:{mode:'gradient', color:'#0b0e14', imageDataUrl:null, videoUrl:''},
   notes:'', todos:'', notionSync:{enabled:false,endpoint:'',databaseId:'',widgetKey:''}, lastSynced:{},
   notifyEnabled:false,
-  updatedAtMs:0,
-  // New fields for better error handling
-  authErrors: [],
-  lastCloudSync: null,
-  fallbackMode: false
+  updatedAtMs:0
 };
-
-function load(){ 
-  try{ 
-    var raw = storageAvailable('localStorage') ? localStorage.getItem(LS_KEY) : null;
-    S = raw ? Object.assign({}, DEF, JSON.parse(raw)) : deepClone(DEF);
-    // Migration logic for v3
-    if (!S.authErrors) S.authErrors = [];
-    if (!S.fallbackMode) S.fallbackMode = false;
-  } catch(e){ 
-    console.warn('Failed to load state:', e);
-    S = deepClone(DEF);
-    S.fallbackMode = true;
-  } 
-  normalize(); 
-}
-
-function save(){ 
-  S.updatedAtMs = Date.now(); 
-  try {
-    if (storageAvailable('localStorage')) {
-      localStorage.setItem(LS_KEY, JSON.stringify(S)); 
-    }
-    scheduleCloudSave(); 
-  } catch(e) {
-    console.warn('Failed to save state:', e);
-    showToast('⚠️ Unable to save locally');
-  }
-}
-
+function load(){ try{ var raw=localStorage.getItem(LS_KEY); S = raw? Object.assign({}, DEF, JSON.parse(raw)) : deepClone(DEF);}catch(e){ S=deepClone(DEF);} normalize(); }
+function save(){ S.updatedAtMs = Date.now(); localStorage.setItem(LS_KEY, JSON.stringify(S)); scheduleCloudSave(); }
 function normalize(){
   S.goalMinutes=clamp(+S.goalMinutes||25,10,600);
   S.sessionMinutes=clamp(+S.sessionMinutes||25,1,300);
@@ -468,4 +347,300 @@ var Timer={
     else { this.mode='break'; var b=effBreak(S.sessionMinutes); this.durationMs=b*60*1000; if(this.durationMs<=0){ alert("Break is disabled by your break policy.\n(Enable it in Settings or set session > threshold.)"); this.reset(); return; } }
     this.remainingMs=this.durationMs; this.endAt=performance.now()+this.remainingMs; updateModeLabels(); this.tick();
   },
-  pause:function(){ if(this.mode==='work'||this.mode==='break'){ this.remainingMs=Math.max(0,this.endAt-performance.now());
+  pause:function(){ if(this.mode==='work'||this.mode==='break'){ this.remainingMs=Math.max(0,this.endAt-performance.now()); this.prevMode=this.mode; this.mode='paused'; cancelAnimationFrame(this.raf); $('#startStop').textContent='RESUME'; updateTimeText(this.remainingMs); $('#subText').textContent='Paused'; } },
+  resume:function(){ if(this.mode==='paused'){ this.endAt=performance.now()+this.remainingMs; this.mode=this.prevMode||'work'; updateModeLabels(); this.tick(); } },
+  reset:function(){ cancelAnimationFrame(this.raf); this.mode='idle'; this.remainingMs=(selectedMode==='work'? S.sessionMinutes: effBreak(S.sessionMinutes))*60*1000; updateTimeText(this.remainingMs); $('#startStop').textContent='START'; $('#subText').textContent= selectedMode==='work' ? 'Focus time.' : (effBreak(S.sessionMinutes)>0?'Break time.':'Break disabled by policy'); },
+  tick:function(){ var self=this; this.raf=requestAnimationFrame(function(){ self.tick(); }); var left=Math.max(0,this.endAt-performance.now()); this.remainingMs=left; updateTimeText(left); if(left<=0){ cancelAnimationFrame(this.raf); this.done(); } },
+  done:function(){
+    try{ var ding=$('#ding'); ding.currentTime=0; ding.play().catch(function(){});}catch(_){}
+    if(this.mode==='work'){
+      var mins=Math.round(this.durationMs/60000);
+      var d=getDay(todayStr()); d.minutes+=mins; save(); refreshStats(); queueSync(todayStr());
+      showToast('Focus complete • '+mins+' min logged'); notifyDesktop('Focus complete', mins+' minutes logged');
+      var b=effBreak(S.sessionMinutes);
+      if(b>0){ this.mode='break'; this.durationMs=b*60*1000; this.remainingMs=this.durationMs; this.endAt=performance.now()+this.remainingMs; updateModeLabels(); this.tick(); }
+      else { this.reset(); }
+    } else {
+      showToast('Break over • Back to focus'); notifyDesktop('Break over', 'Time to focus again'); this.reset();
+    }
+  }
+};
+function updateTimeText(ms){ $('#timeText').textContent=fmtHM(ms); }
+function updateModeLabels(){
+  if(Timer.mode==='work'){ $('#tabFocus').classList.add('active'); $('#tabBreak').classList.remove('active'); $('#subText').textContent='Focus time.'; $('#startStop').textContent='PAUSE'; }
+  if(Timer.mode==='break'){ $('#tabBreak').classList.add('active'); $('#tabFocus').classList.remove('active'); $('#subText').textContent='Break time.'; $('#startStop').textContent='PAUSE'; }
+}
+
+/* ===== Panels & background ===== */
+function showPanel(id){ document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');}); $(id).classList.add('active'); }
+function hidePanels(){ document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');}); }
+function applyBackground(){
+  var live=$('#liveGradient'), img=$('#bgImage'), vid=$('#bgVideo');
+  live.style.display=img.style.display=vid.style.display='none';
+  if(S.background.mode==='gradient'){ live.style.display='block'; }
+  else if(S.background.mode==='image' && S.background.imageDataUrl){ img.src=S.background.imageDataUrl; img.style.display='block'; }
+  else if(S.background.mode==='video' && S.background.videoUrl){ vid.src=S.background.videoUrl; vid.style.display='block'; }
+  else if(S.background.mode==='color'){ document.body.style.background=S.background.color||'#0b0e14'; }
+}
+
+/* ===== Stats ===== */
+function refreshStats(){
+  var streak = recompute();
+  $('#goalPill').textContent=S.goalMinutes;
+  $('#freePill').textContent=S.freeDayBank;
+  $('#streakPill').textContent=streak;
+  var sh=document.getElementById('streakHero'); if (sh) sh.textContent = streak;
+  var toNext = 14 - (streak % 14 || 14);
+  $('#nextFreeIn').textContent=toNext+'d';
+
+  var tb=$('#logTable tbody'); tb.innerHTML='';
+  [].concat(S.days).sort(function(a,b){return b.date.localeCompare(a.date);}).slice(0,60).forEach(function(d){
+    var tr=document.createElement('tr'); var meet=isSuccess(d);
+    tr.innerHTML='<td>'+new Date(d.date+"T00:00:00").toLocaleDateString([], {weekday:"short", month:"short", day:"numeric"})+'</td><td>'+d.minutes+'</td><td>'+(meet?'Yes':'No')+'</td><td>'+(d.usedFreeDay?'Yes':'No')+'</td>';
+    tb.appendChild(tr);
+  });
+}
+
+/* ===== Notion sync (optional) ===== */
+function signatureFor(d){ return [d.minutes,S.goalMinutes,d.usedFreeDay].join('|'); }
+function queueSync(dateStr){
+  if(!(S.notionSync && S.notionSync.enabled && S.notionSync.endpoint && S.notionSync.databaseId)) return;
+  var d=getDay(dateStr); var sig=signatureFor(d);
+  if(S.lastSynced[dateStr]===sig) return;
+  fetch(S.notionSync.endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({databaseId:S.notionSync.databaseId, date:dateStr, minutes:d.minutes, goal:S.goalMinutes, usedFreeDay:d.usedFreeDay})})
+    .then(function(r){return r.json().catch(function(){return {};});})
+    .then(function(){ S.lastSynced[dateStr]=sig; save(); })
+    .catch(function(){});
+}
+
+/* ===== Quotes ===== */
+var QUOTES=[["You cannot swim for new horizons until you have courage to lose sight of the shore.","William Faulkner"],["Focus is the art of knowing what to ignore.","James Clear"],["The secret of getting ahead is getting started.","Mark Twain"],["It always seems impossible until it’s done.","Nelson Mandela"],["Small progress is still progress.","Unknown"]];
+function setQuote(){ var qa=QUOTES[(new Date().getDate())%QUOTES.length]; $('#quoteBox').innerHTML='“'+qa[0]+'” <span class="author">— '+qa[1]+'</span>'; }
+
+/* ===== Cloud auth + sync (Firebase) — Option B (top-level only) ===== */
+var firebaseConfig = {
+  apiKey: "AIzaSyC7fhspLB7sNThCwRt2k8qsKcAOb_Fr6dU",
+  authDomain: "streak-clock.firebaseapp.com",
+  projectId: "streak-clock",
+  appId: "1:131829224528:web:e1c75d85e1311c30026d55"
+};
+var CLOUD = {enabled:false, app:null, auth:null, db:null, user:null, unsub:null};
+
+function initCloud(){
+  try{
+    if(!firebaseConfig || !firebaseConfig.apiKey){ CLOUD.enabled=false; updateAuthUI(); return; }
+    CLOUD.app  = firebase.initializeApp(firebaseConfig);
+    CLOUD.auth = firebase.auth();
+    CLOUD.db   = firebase.firestore();
+    CLOUD.enabled = true;
+
+    CLOUD.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(function(){});
+
+    CLOUD.auth.onAuthStateChanged(function(user){
+      CLOUD.user = user || null;
+      updateAuthUI();
+      if(CLOUD.unsub){ CLOUD.unsub(); CLOUD.unsub=null; }
+      if(user){ syncFromCloud(); }
+    });
+  }catch(e){ console.warn("Cloud init failed:", e); CLOUD.enabled=false; updateAuthUI(); }
+}
+
+function authErrorHint(msg, show){
+  var box = $('#authHint'); if(!box) return;
+  if(!show){ box.classList.remove('show'); return; }
+  box.textContent = msg;
+  box.classList.add('show');
+}
+
+function updateAuthUI(){
+  var btn=document.getElementById('authToggle'); if(!btn) return;
+
+  if(!CLOUD.enabled){
+    btn.textContent='🔐 Sign in';
+    btn.title='Add Firebase config in index.html to enable login';
+    btn.onclick=function(){ alert('Add your Firebase config (apiKey, authDomain, projectId, appId) in index.html, then reload.'); };
+    return;
+  }
+
+  // OPTION B: If embedded (iframe) and not signed in, force top-level flow.
+  if (IN_IFRAME && !CLOUD.user) {
+    btn.textContent = '🔓 Open full app to sign in';
+    btn.onclick = function(){
+      var url = window.location.href.split('#')[0];
+      var glue = url.includes('?') ? '&' : '?';
+      window.open(url + glue + 'autologin=1', '_blank'); // auto sign-in in new tab
+    };
+    authErrorHint('Sign-in is blocked inside embeds by the browser. Use “Open full app to sign in”.', true);
+    return;
+  } else {
+    authErrorHint('', false);
+  }
+
+  if(CLOUD.user){
+    var name=(CLOUD.user.displayName||CLOUD.user.email||'Account').split(' ')[0];
+    btn.textContent='🔓 Sign out ('+name+')';
+    btn.onclick=function(){ CLOUD.auth.signOut().catch(function(e){ alert('Sign-out failed: '+e.message); }); };
+  }else{
+    btn.textContent='🔐 Sign in';
+    btn.onclick=function(){
+      var provider=new firebase.auth.GoogleAuthProvider();
+      provider.setCustomParameters({prompt:'select_account'});
+
+      // Top-level only: try popup, fallback to redirect when sessionStorage is available
+      CLOUD.auth.signInWithPopup(provider)
+        .catch(function(e){
+          var canRedirect = !IN_IFRAME && storageAvailable('sessionStorage');
+          if (canRedirect) return CLOUD.auth.signInWithRedirect(provider);
+          alert('Popup blocked. Please allow popups for this site and try again.');
+        });
+    };
+  }
+}
+
+function profileRef(){ return CLOUD.db.collection('users').doc(CLOUD.user.uid).collection('profiles').doc(NS); }
+
+/* Avoid interrupting a running timer on remote updates */
+function applyRemoteState(remote){
+  S = Object.assign({}, S, remote);
+  localStorage.setItem(LS_KEY, JSON.stringify(S));
+  applyBackground();
+  if(Timer.mode==='idle'){ Timer.reset(); }
+  refreshStats();
+}
+
+function syncFromCloud(){
+  var ref=profileRef();
+  ref.get().then(function(snap){
+    if(snap.exists){
+      var data=snap.data(); var remote=data.state||data;
+      if((remote.updatedAtMs||0) >= (S.updatedAtMs||0)){ applyRemoteState(remote); }
+      else { saveToCloud(); }
+    }else{ saveToCloud(); }
+  }).catch(function(e){ console.warn('Initial cloud load failed:', e); });
+
+  CLOUD.unsub = ref.onSnapshot(function(doc){
+    if(!doc.exists) return;
+    var d=doc.data(); var remote=d.state||d;
+    if((remote.updatedAtMs||0) > (S.updatedAtMs||0)){ applyRemoteState(remote); }
+  });
+}
+var cloudTimer=null;
+function scheduleCloudSave(){ if(!(CLOUD.enabled && CLOUD.user)) return; if(cloudTimer) clearTimeout(cloudTimer); cloudTimer=setTimeout(saveToCloud, 500); }
+function saveToCloud(){
+  if(!(CLOUD.enabled && CLOUD.user)) return;
+  var ref=profileRef();
+  var payload={ ns:NS, version:2, state:S, updatedAtMs:S.updatedAtMs||Date.now(), updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+  ref.set(payload,{merge:true}).catch(function(e){ console.warn('Cloud save failed:', e); });
+}
+
+/* ===== Wiring ===== */
+function wire(){
+  // Panels
+  $('#openStats').onclick=function(){showPanel('#panel-stats');};
+  $('#openBg').onclick=function(){showPanel('#panel-bg');};
+  $('#openSettings').onclick=function(){showPanel('#panel-settings');};
+  $('#openSync').onclick=function(){showPanel('#panel-sync');};
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape') hidePanels(); });
+
+  // Tabs
+  $('#tabFocus').onclick=function(){ selectedMode='work'; $('#tabFocus').classList.add('active'); $('#tabBreak').classList.remove('active'); $('#subText').textContent='Focus time.'; updateTimeText(S.sessionMinutes*60*1000); if(Timer.mode==='idle') Timer.reset(); };
+  $('#tabBreak').onclick=function(){ selectedMode='break'; $('#tabBreak').classList.add('active'); $('#tabFocus').classList.remove('active'); var b=effBreak(S.sessionMinutes); $('#subText').textContent=b>0?'Break time.':'Break disabled by policy'; updateTimeText(b*60*1000); if(Timer.mode==='idle') Timer.reset(); };
+
+  // Break controller adjusts running break smoothly
+  function updateBreakBadge(){ var badge=$('#breakLenBadge'); if(badge) badge.textContent=(S.breakMinutes|0)+'m'; }
+  $('#breakDec').onclick=function(){
+    var old=S.breakMinutes; S.breakMinutes=clamp(S.breakMinutes-1,0,120); $('#breakLenInput').value=S.breakMinutes; save(); updateBreakBadge();
+    if(Timer.mode==='break'){ var delta=(S.breakMinutes-old)*60*1000; Timer.remainingMs=Math.max(0,Timer.remainingMs+delta); Timer.endAt=performance.now()+Timer.remainingMs; updateTimeText(Timer.remainingMs); }
+    if(selectedMode==='break' && Timer.mode==='idle') updateTimeText(effBreak(S.sessionMinutes)*60*1000);
+  };
+  $('#breakInc').onclick=function(){
+    var old=S.breakMinutes; S.breakMinutes=clamp(S.breakMinutes+1,0,120); $('#breakLenInput').value=S.breakMinutes; save(); updateBreakBadge();
+    if(Timer.mode==='break'){ var delta=(S.breakMinutes-old)*60*1000; Timer.remainingMs=Math.max(0,Timer.remainingMs+delta); Timer.endAt=performance.now()+Timer.remainingMs; updateTimeText(Timer.remainingMs); }
+    if(selectedMode==='break' && Timer.mode==='idle') updateTimeText(effBreak(S.sessionMinutes)*60*1000);
+  };
+  updateBreakBadge();
+
+  // Controls
+  $('#startStop').onclick=function(){ if(Timer.mode==='idle') Timer.start(selectedMode); else if(Timer.mode==='paused') Timer.resume(); else Timer.pause(); };
+  $('#resetBtn').onclick=function(){ Timer.reset(); };
+
+  // Settings
+  $('#sessionInput').onchange=function(e){ S.sessionMinutes=clamp(+e.target.value||25,1,300); save(); if(selectedMode==='work') updateTimeText(S.sessionMinutes*60*1000); if(Timer.mode==='idle') Timer.reset(); };
+  $('#goalInput').onchange=function(e){ S.goalMinutes=clamp(+e.target.value||25,10,600); save(); refreshStats(); queueSync(todayStr()); };
+  Array.prototype.forEach.call(document.querySelectorAll('input[name="breakPolicy"]'),function(r){
+    r.checked=(r.value===S.breakPolicy);
+    r.addEventListener('change',function(){ S.breakPolicy=document.querySelector('input[name="breakPolicy"]:checked').value; save(); if(selectedMode==='break') updateTimeText(effBreak(S.sessionMinutes)*60*1000); });
+  });
+  $('#breakThresholdInput').onchange=function(e){ S.breakThreshold=clamp(+e.target.value||30,1,300); save(); if(selectedMode==='break') updateTimeText(effBreak(S.sessionMinutes)*60*1000); };
+  $('#breakLenInput').onchange=function(e){ S.breakMinutes=clamp(+e.target.value||5,0,120); save(); updateBreakBadge(); if(selectedMode==='break') updateTimeText(effBreak(S.sessionMinutes)*60*1000); };
+
+  // Notifications
+  $('#notifyEnable').checked=!!S.notifyEnabled;
+  $('#notifyEnable').onchange=function(e){ S.notifyEnabled=!!e.target.checked; save(); if(S.notifyEnabled) ensurePermission(); };
+
+  // Free-day tools
+  $('#applyFreeYesterday').onclick=function(){ if(S.freeDayBank<=0){ alert("No free days in bank."); return; } var y=addDays(todayStr(),-1); var d=getDay(y); if(isSuccess(d)){ alert("Yesterday already counts as success."); return; } d.usedFreeDay=true; S.freeDayBank--; save(); refreshStats(); queueSync(y); };
+  $('#manageMisses').onclick=function(){ var missed=[].concat(S.days).filter(function(d){return !isSuccess(d);}).slice(-60); if(!missed.length){ alert("No missed days to cover. 🎉"); return; } var input=prompt("Free days: "+S.freeDayBank+"\nDates to cover (comma-separated YYYY-MM-DD):\n"+missed.map(function(d){return "• "+d.date+" ("+d.minutes+"m)";}).join('\n')); if(!input) return; var want=input.split(',').map(function(s){return s.trim();}).filter(Boolean); for(var i=0;i<want.length;i++){ var dt=want[i]; var dd=getDay(dt); if(!isSuccess(dd)&&S.freeDayBank>0){ dd.usedFreeDay=true; S.freeDayBank--; queueSync(dt); } } save(); refreshStats(); };
+
+  // Notes / Todos
+  $('#openNotes').onclick=function(){ showPanel('#panel-settings'); $('#notesBox').focus(); };
+  $('#openTodos').onclick=function(){ showPanel('#panel-settings'); $('#todoBox').focus(); };
+  $('#notesBox').value=S.notes||''; $('#notesBox').oninput=function(e){ S.notes=e.target.value; save(); };
+  $('#todoBox').value=S.todos||''; $('#todoBox').oninput=function(e){ S.todos=e.target.value; save(); };
+
+  // Background
+  document.querySelectorAll('[data-bg]').forEach(function(btn){ btn.onclick=function(){ var mode=btn.getAttribute('data-bg');
+    if(mode==='gradient'){ S.background.mode='gradient'; save(); applyBackground(); }
+    if(mode==='image'){ var inp=document.createElement('input'); inp.type='file'; inp.accept='image/*'; inp.onchange=function(e){ var f=e.target.files[0]; if(!f) return; var r=new FileReader(); r.onload=function(){ S.background.imageDataUrl=r.result; S.background.mode='image'; save(); applyBackground(); }; r.readAsDataURL(f); }; inp.click(); }
+    if(mode==='video'){ var url=prompt("Direct video URL (mp4/webm):"); if(url){ S.background.videoUrl=url; S.background.mode='video'; save(); applyBackground(); } }
+    if(mode==='color'){ var c=prompt("HEX color (e.g., #101318):", S.background.color||'#0b0e14'); if(c){ S.background.color=c; S.background.mode='color'; save(); applyBackground(); } }
+  };});
+  $('#bgClear').onclick=function(){ S.background=deepClone(DEF.background); save(); applyBackground(); };
+
+  // Notion sync inputs
+  $('#syncEndpoint').value=S.notionSync.endpoint||''; $('#syncDb').value=S.notionSync.databaseId||''; $('#syncKey').value=S.notionSync.widgetKey||''; $('#syncEnable').checked=!!S.notionSync.enabled;
+  $('#syncEndpoint').onchange=function(e){ S.notionSync.endpoint=e.target.value.trim(); save(); };
+  $('#syncDb').onchange=function(e){ S.notionSync.databaseId=e.target.value.trim(); save(); };
+  $('#syncKey').onchange=function(e){ S.notionSync.widgetKey=e.target.value.trim(); save(); };
+  $('#syncEnable').onchange=function(e){ S.notionSync.enabled=!!e.target.checked; save(); if(S.notionSync.enabled) queueSync(todayStr()); };
+  $('#syncNow').onclick=function(){ var t=todayStr(); var ds=[t]; for(var i=1;i<=7;i++) ds.push(addDays(t,-i)); ds.forEach(queueSync); alert("Sync queued (today + last 7)."); };
+
+  // Keys
+  document.addEventListener('keydown',function(e){
+    if(e.code==='Space'){ e.preventDefault(); $('#startStop').click(); }
+    if(e.key==='r'||e.key==='R'){ Timer.reset(); }
+  });
+}
+
+/* ===== Boot ===== */
+function boot(){
+  load();
+  $('#tzLabel').textContent=Intl.DateTimeFormat().resolvedOptions().timeZone;
+  applyBackground();
+  setQuote();
+  selectedMode='work'; Timer.reset();
+  refreshStats();
+  wire();
+  initCloud();
+  ensurePermission();
+
+  // If opened in a new tab with ?autologin=1, trigger sign-in at top-level.
+  setTimeout(function(){
+    if (AUTO_LOGIN && !IN_IFRAME && CLOUD.enabled && !CLOUD.user) {
+      var btn = document.getElementById('authToggle');
+      if (btn) btn.click();
+    }
+  }, 600);
+
+  // Live small clock + title
+  setInterval(function(){
+    var planned=(selectedMode==='work'? S.sessionMinutes : effBreak(S.sessionMinutes))*60000;
+    var ms=(Timer.mode==='idle'||Timer.mode==='paused')? (Timer.mode==='paused'?Timer.remainingMs:planned) : Timer.remainingMs;
+    document.title = fmtHM(ms)+' • Focus Clock';
+    var c=$('#nowClock'); if(c) c.textContent=hms();
+  },1000);
+}
+boot();
+</script>
+</body>
+</html>
