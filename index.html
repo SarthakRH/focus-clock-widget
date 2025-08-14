@@ -7,16 +7,14 @@
 <link rel="preconnect" href="https://cdn.jsdelivr.net" />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap">
 
-<!-- Firebase SDKs (must be before our main script) -->
+<!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-firestore-compat.js"></script>
 
 <style>
-  :root{
-    --accent:#ffffff; --muted:rgba(255,255,255,.82); --soft:rgba(255,255,255,.65);
-    --panel:rgba(12,14,18,.72); --panelBorder:rgba(255,255,255,.12);
-  }
+  :root{ --accent:#ffffff; --muted:rgba(255,255,255,.82); --soft:rgba(255,255,255,.65);
+         --panel:rgba(12,14,18,.72); --panelBorder:rgba(255,255,255,.12); }
   *{box-sizing:border-box} html,body{height:100%}
   body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#fff;background:#0b0e14;overflow:hidden}
 
@@ -26,7 +24,7 @@
   @keyframes hue{from{filter:hue-rotate(0deg) blur(40px)}to{filter:hue-rotate(360deg) blur(40px)}}
   #bgImage,#bgVideo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 
-  /* TOP BAR: small live clock + timezone */
+  /* TOP BAR: small live clock + tz */
   .topbar{position:fixed;inset:12px 16px auto 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;color:var(--muted);font-weight:600;z-index:5}
   .top-left,.top-right{display:flex;gap:12px;align-items:center}
   .clock{font-variant-numeric:tabular-nums;font-weight:700;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.15);padding:4px 8px;border-radius:8px;color:#fff}
@@ -54,26 +52,12 @@
   .cta.secondary{border-color:rgba(255,255,255,.55);background:rgba(255,255,255,.08)}
   .cta.secondary:hover{background:rgba(255,255,255,.14)}
 
-  /* Streak pill on hero */
-  .streak-hero{
-    margin-top:10px;
-    font-weight:800;
-    letter-spacing:.08em;
-    text-transform:uppercase;
-    font-size:12px;
-    color:rgba(255,255,255,.95);
-    display:inline-flex;
-    align-items:center;
-    gap:6px;
-    padding:6px 12px;
-    background:rgba(0,0,0,.25);
-    border:1px solid rgba(255,255,255,.25);
-    border-radius:999px;
-    backdrop-filter:blur(6px);
-    box-shadow:0 10px 30px rgba(0,0,0,.25);
-  }
+  /* Streak pill */
+  .streak-hero{margin-top:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:12px;color:rgba(255,255,255,.95);
+               display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.25);
+               border-radius:999px;backdrop-filter:blur(6px);box-shadow:0 10px 30px rgba(0,0,0,.25);}
 
-  /* Bottom bar */
+  /* Bottom bar (moved controls here) */
   .bottom{position:fixed;inset:auto 16px 14px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--muted);z-index:5;flex-wrap:wrap}
   .links{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
   .quickbtn,.iconbtn{background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.15);color:#fff;padding:6px 10px;border-radius:10px;font-weight:600;cursor:pointer}
@@ -96,11 +80,9 @@
   th,td{padding:8px 6px;border-bottom:1px solid var(--panelBorder);font-size:13px;text-align:left}
   .notice{font-size:12px;color:var(--soft)}
 
-  /* Toast */
+  /* Toast + auth hint */
   .toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%) translateY(10px);background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.25);padding:10px 14px;border-radius:10px;color:#fff;font-weight:700;opacity:0;pointer-events:none;transition:opacity .25s, transform .25s;z-index:7}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-
-  /* Small inline alert for auth info */
   .auth-hint{position:fixed;left:50%;top:70px;transform:translateX(-50%);background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.25);padding:8px 12px;border-radius:10px;font-size:12px;display:none;z-index:8}
   .auth-hint.show{display:block}
 </style>
@@ -123,7 +105,7 @@
     </div>
   </div>
 
-  <!-- Inline auth note (Option B explains iframe behavior) -->
+  <!-- Inline auth note for iframe environments -->
   <div id="authHint" class="auth-hint"></div>
 
   <!-- HERO -->
@@ -225,6 +207,11 @@
     <h3 style="margin:12px 0 6px;">Notifications</h3>
     <label class="pill"><input type="checkbox" id="notifyEnable"> Desktop notification when session completes</label>
 
+    <h3 style="margin:12px 0 6px;">Public mirror for Notion</h3>
+    <label class="pill"><input type="checkbox" id="pubMirrorEnable"> Expose read-only profile (for embeds)</label>
+    <button id="copyNotionUrl" class="iconbtn" title="Copy an embed URL with your UID">Copy Notion URL</button>
+    <span class="notice" id="uidLabel"></span>
+
     <h3 style="margin:12px 0 6px;">Free-day automation</h3>
     <label class="pill"><input type="checkbox" id="autoApplyChk"> Auto-apply free days to recent misses</label>
     <div class="row" style="margin-top:8px;">
@@ -251,15 +238,15 @@
     <div class="notice">Sends daily totals (date, minutes, goal, usedFreeDay) to your endpoint. Keep your Notion token server-side.</div>
   </section>
 
-  <!-- Toast -->
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <script>
-/* ===== Flags ===== */
+/* ===== Query flags ===== */
 var Q = new URLSearchParams(location.search);
 var NS = Q.get('ns') || 'default';
-var AUTO_LOGIN = Q.get('autologin') === '1';               // top-level auto-login helper
-var IN_IFRAME = (function(){ try { return window.top !== window.self; } catch (_) { return true; } })();
+var AUTO_LOGIN = Q.get('autologin') === '1';
+var UID_PARAM = Q.get('uid') || '';   // << for Notion embed read-only
+var IN_IFRAME = (function(){ try { return window.top !== window.self; } catch (_) { return true; }})();
 var TRANSPARENT = Q.get('transparent') === '1';
 if(TRANSPARENT) document.body.style.background='transparent';
 
@@ -269,19 +256,10 @@ function $(s){ return document.querySelector(s); }
 function addDays(str,n){ var d=new Date(str+"T00:00:00"); d.setDate(d.getDate()+n); return d.toLocaleDateString('en-CA'); }
 function todayStr(){ return new Date().toLocaleDateString('en-CA',{timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone}); }
 function clamp(v,min,max){ return Math.min(max,Math.max(min,v)); }
-function fmtHM(ms){
-  ms=Math.max(0,Math.floor(ms/1000));
-  var h=Math.floor(ms/3600), m=Math.floor((ms%3600)/60), s=ms%60;
-  return (h?String(h).padStart(2,'0')+":" :"")+String(m).padStart(2,'0')+":"+String(s).padStart(2,'0');
-}
+function fmtHM(ms){ ms=Math.max(0,Math.floor(ms/1000)); var h=Math.floor(ms/3600), m=Math.floor((ms%3600)/60), s=ms%60; return (h?String(h).padStart(2,'0')+":" :"")+String(m).padStart(2,'0')+":"+String(s).padStart(2,'0'); }
 function hms(){ var d=new Date(); return d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
-function showToast(msg){
-  var t=$('#toast'); if(!t) return; t.textContent=msg; t.classList.add('show');
-  clearTimeout(showToast._tid); showToast._tid=setTimeout(function(){t.classList.remove('show');},2500);
-}
-function storageAvailable(type){
-  try{ var s=window[type]; var x="__t"+Math.random(); s.setItem(x,"1"); var ok=s.getItem(x)==="1"; s.removeItem(x); return ok; }catch(e){ return false; }
-}
+function showToast(msg){ var t=$('#toast'); if(!t) return; t.textContent=msg; t.classList.add('show'); clearTimeout(showToast._tid); showToast._tid=setTimeout(function(){t.classList.remove('show');},2500); }
+function storageAvailable(type){ try{ var s=window[type]; var x="__t"+Math.random(); s.setItem(x,"1"); var ok=s.getItem(x)==="1"; s.removeItem(x); return ok; }catch(e){ return false; } }
 
 /* ===== State ===== */
 var LS_KEY="focusClock.hero.v2."+NS;
@@ -293,6 +271,7 @@ var DEF={
   background:{mode:'gradient', color:'#0b0e14', imageDataUrl:null, videoUrl:''},
   notes:'', todos:'', notionSync:{enabled:false,endpoint:'',databaseId:'',widgetKey:''}, lastSynced:{},
   notifyEnabled:false,
+  publicMirrorEnabled:true,     // << default ON so Notion can work out-of-the-box
   updatedAtMs:0
 };
 function load(){ try{ var raw=localStorage.getItem(LS_KEY); S = raw? Object.assign({}, DEF, JSON.parse(raw)) : deepClone(DEF);}catch(e){ S=deepClone(DEF);} normalize(); }
@@ -401,7 +380,7 @@ function refreshStats(){
   });
 }
 
-/* ===== Notion sync (optional) ===== */
+/* ===== Notion sync (optional endpoint) ===== */
 function signatureFor(d){ return [d.minutes,S.goalMinutes,d.usedFreeDay].join('|'); }
 function queueSync(dateStr){
   if(!(S.notionSync && S.notionSync.enabled && S.notionSync.endpoint && S.notionSync.databaseId)) return;
@@ -417,14 +396,16 @@ function queueSync(dateStr){
 var QUOTES=[["You cannot swim for new horizons until you have courage to lose sight of the shore.","William Faulkner"],["Focus is the art of knowing what to ignore.","James Clear"],["The secret of getting ahead is getting started.","Mark Twain"],["It always seems impossible until it’s done.","Nelson Mandela"],["Small progress is still progress.","Unknown"]];
 function setQuote(){ var qa=QUOTES[(new Date().getDate())%QUOTES.length]; $('#quoteBox').innerHTML='“'+qa[0]+'” <span class="author">— '+qa[1]+'</span>'; }
 
-/* ===== Cloud auth + sync (Firebase) — Option B (top-level only) ===== */
+/* ===== Firebase config (yours) ===== */
 var firebaseConfig = {
   apiKey: "AIzaSyC7fhspLB7sNThCwRt2k8qsKcAOb_Fr6dU",
   authDomain: "streak-clock.firebaseapp.com",
   projectId: "streak-clock",
   appId: "1:131829224528:web:e1c75d85e1311c30026d55"
 };
-var CLOUD = {enabled:false, app:null, auth:null, db:null, user:null, unsub:null};
+
+/* ===== Cloud auth + public mirror ===== */
+var CLOUD = {enabled:false, app:null, auth:null, db:null, user:null, unsub:null, unsubPublic:null};
 
 function initCloud(){
   try{
@@ -440,7 +421,7 @@ function initCloud(){
       CLOUD.user = user || null;
       updateAuthUI();
       if(CLOUD.unsub){ CLOUD.unsub(); CLOUD.unsub=null; }
-      if(user){ syncFromCloud(); }
+      if(user){ syncFromCloud(); $('#uidLabel').textContent='UID: '+user.uid; }
     });
   }catch(e){ console.warn("Cloud init failed:", e); CLOUD.enabled=false; updateAuthUI(); }
 }
@@ -453,24 +434,30 @@ function authErrorHint(msg, show){
 }
 
 function updateAuthUI(){
-  var btn=document.getElementById('authToggle'); if(!btn) return;
+  var btn=$('#authToggle'); if(!btn) return;
 
   if(!CLOUD.enabled){
     btn.textContent='🔐 Sign in';
-    btn.title='Add Firebase config in index.html to enable login';
-    btn.onclick=function(){ alert('Add your Firebase config (apiKey, authDomain, projectId, appId) in index.html, then reload.'); };
+    btn.title='Add Firebase config';
+    btn.onclick=function(){ alert('Add your Firebase config in index.html, then reload.'); };
     return;
   }
 
-  // OPTION B: If embedded (iframe) and not signed in, force top-level flow.
   if (IN_IFRAME && !CLOUD.user) {
+    // In embed: we rely on public mirror. If UID not supplied, guide user.
+    if (!UID_PARAM) {
+      authErrorHint('Embed is read-only. Add ?uid=YOUR_UID to the URL (use “Copy Notion URL” from the full app).', true);
+    } else {
+      authErrorHint('Read-only from public mirror. Open full app to sign in.', true);
+      listenPublic(UID_PARAM);
+    }
     btn.textContent = '🔓 Open full app to sign in';
     btn.onclick = function(){
-      var url = window.location.href.split('#')[0];
-      var glue = url.includes('?') ? '&' : '?';
-      window.open(url + glue + 'autologin=1', '_blank'); // auto sign-in in new tab
+      var base = window.location.href.split('#')[0].split('?')[0];
+      var glue = base.includes('?') ? '&' : '?';
+      var url  = base + glue + 'autologin=1';
+      window.open(url, '_blank');
     };
-    authErrorHint('Sign-in is blocked inside embeds by the browser. Use “Open full app to sign in”.', true);
     return;
   } else {
     authErrorHint('', false);
@@ -485,21 +472,18 @@ function updateAuthUI(){
     btn.onclick=function(){
       var provider=new firebase.auth.GoogleAuthProvider();
       provider.setCustomParameters({prompt:'select_account'});
-
-      // Top-level only: try popup, fallback to redirect when sessionStorage is available
-      CLOUD.auth.signInWithPopup(provider)
-        .catch(function(e){
-          var canRedirect = !IN_IFRAME && storageAvailable('sessionStorage');
-          if (canRedirect) return CLOUD.auth.signInWithRedirect(provider);
-          alert('Popup blocked. Please allow popups for this site and try again.');
-        });
+      CLOUD.auth.signInWithPopup(provider).catch(function(e){
+        var canRedirect = !IN_IFRAME && storageAvailable('sessionStorage');
+        if (canRedirect) return CLOUD.auth.signInWithRedirect(provider);
+        alert('Popup blocked. Please allow popups for this site and try again.');
+      });
     };
   }
 }
 
 function profileRef(){ return CLOUD.db.collection('users').doc(CLOUD.user.uid).collection('profiles').doc(NS); }
+function publicRef(uid){ return CLOUD.db.collection('public').doc(uid).collection('profiles').doc(NS); }
 
-/* Avoid interrupting a running timer on remote updates */
 function applyRemoteState(remote){
   S = Object.assign({}, S, remote);
   localStorage.setItem(LS_KEY, JSON.stringify(S));
@@ -508,8 +492,20 @@ function applyRemoteState(remote){
   refreshStats();
 }
 
+// Read-only public listener (for Notion embed)
+function listenPublic(uid){
+  if (!CLOUD.enabled || !uid) return;
+  if (CLOUD.unsubPublic) { CLOUD.unsubPublic(); CLOUD.unsubPublic = null; }
+  CLOUD.unsubPublic = publicRef(uid).onSnapshot(function(doc){
+    if(!doc.exists) return;
+    var d=doc.data(); var remote=d.state||d;
+    applyRemoteState(remote);
+  }, function(e){ console.warn('Public mirror listen error:', e); });
+}
+
 function syncFromCloud(){
   var ref=profileRef();
+  // Initial pull
   ref.get().then(function(snap){
     if(snap.exists){
       var data=snap.data(); var remote=data.state||data;
@@ -518,19 +514,42 @@ function syncFromCloud(){
     }else{ saveToCloud(); }
   }).catch(function(e){ console.warn('Initial cloud load failed:', e); });
 
+  // Live updates
   CLOUD.unsub = ref.onSnapshot(function(doc){
     if(!doc.exists) return;
     var d=doc.data(); var remote=d.state||d;
     if((remote.updatedAtMs||0) > (S.updatedAtMs||0)){ applyRemoteState(remote); }
   });
 }
+
 var cloudTimer=null;
 function scheduleCloudSave(){ if(!(CLOUD.enabled && CLOUD.user)) return; if(cloudTimer) clearTimeout(cloudTimer); cloudTimer=setTimeout(saveToCloud, 500); }
+
+function filteredPublicState(s){
+  // Publish only what’s needed for embeds (avoid notes/todos/background images)
+  return {
+    goalMinutes:s.goalMinutes, sessionMinutes:s.sessionMinutes,
+    breakMinutes:s.breakMinutes, breakPolicy:s.breakPolicy, breakThreshold:s.breakThreshold,
+    autoApplyFreeDays:s.autoApplyFreeDays, days:s.days, freeDayBank:s.freeDayBank,
+    runStartDate:s.runStartDate, runMilestonesAwarded:s.runMilestonesAwarded, lastSeenDate:s.lastSeenDate,
+    notifyEnabled:s.notifyEnabled, updatedAtMs:s.updatedAtMs
+  };
+}
+
 function saveToCloud(){
   if(!(CLOUD.enabled && CLOUD.user)) return;
+  var uid = CLOUD.user.uid;
   var ref=profileRef();
   var payload={ ns:NS, version:2, state:S, updatedAtMs:S.updatedAtMs||Date.now(), updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
   ref.set(payload,{merge:true}).catch(function(e){ console.warn('Cloud save failed:', e); });
+
+  // Also write public mirror if enabled
+  if (S.publicMirrorEnabled) {
+    publicRef(uid).set({ ns:NS, version:2, state: filteredPublicState(S),
+                         updatedAtMs:S.updatedAtMs||Date.now(),
+                         updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, {merge:true})
+      .catch(function(e){ console.warn('Public mirror save failed:', e); });
+  }
 }
 
 /* ===== Wiring ===== */
@@ -546,7 +565,7 @@ function wire(){
   $('#tabFocus').onclick=function(){ selectedMode='work'; $('#tabFocus').classList.add('active'); $('#tabBreak').classList.remove('active'); $('#subText').textContent='Focus time.'; updateTimeText(S.sessionMinutes*60*1000); if(Timer.mode==='idle') Timer.reset(); };
   $('#tabBreak').onclick=function(){ selectedMode='break'; $('#tabBreak').classList.add('active'); $('#tabFocus').classList.remove('active'); var b=effBreak(S.sessionMinutes); $('#subText').textContent=b>0?'Break time.':'Break disabled by policy'; updateTimeText(b*60*1000); if(Timer.mode==='idle') Timer.reset(); };
 
-  // Break controller adjusts running break smoothly
+  // Break controller
   function updateBreakBadge(){ var badge=$('#breakLenBadge'); if(badge) badge.textContent=(S.breakMinutes|0)+'m'; }
   $('#breakDec').onclick=function(){
     var old=S.breakMinutes; S.breakMinutes=clamp(S.breakMinutes-1,0,120); $('#breakLenInput').value=S.breakMinutes; save(); updateBreakBadge();
@@ -577,6 +596,16 @@ function wire(){
   // Notifications
   $('#notifyEnable').checked=!!S.notifyEnabled;
   $('#notifyEnable').onchange=function(e){ S.notifyEnabled=!!e.target.checked; save(); if(S.notifyEnabled) ensurePermission(); };
+
+  // Public mirror toggle + copy URL
+  $('#pubMirrorEnable').checked=!!S.publicMirrorEnabled;
+  $('#pubMirrorEnable').onchange=function(e){ S.publicMirrorEnabled=!!e.target.checked; save(); if(CLOUD.user) saveToCloud(); };
+  $('#copyNotionUrl').onclick=function(){
+    if(!CLOUD.user){ alert('Sign in first (top-level tab).'); return; }
+    var base = window.location.href.split('#')[0].split('?')[0];
+    var url = base + '?uid=' + encodeURIComponent(CLOUD.user.uid) + '&ns=' + encodeURIComponent(NS) + '&transparent=1';
+    navigator.clipboard.writeText(url).then(function(){ showToast('Copied Notion URL'); }, function(){ alert(url); });
+  };
 
   // Free-day tools
   $('#applyFreeYesterday').onclick=function(){ if(S.freeDayBank<=0){ alert("No free days in bank."); return; } var y=addDays(todayStr(),-1); var d=getDay(y); if(isSuccess(d)){ alert("Yesterday already counts as success."); return; } d.usedFreeDay=true; S.freeDayBank--; save(); refreshStats(); queueSync(y); };
@@ -624,15 +653,10 @@ function boot(){
   initCloud();
   ensurePermission();
 
-  // If opened in a new tab with ?autologin=1, trigger sign-in at top-level.
   setTimeout(function(){
-    if (AUTO_LOGIN && !IN_IFRAME && CLOUD.enabled && !CLOUD.user) {
-      var btn = document.getElementById('authToggle');
-      if (btn) btn.click();
-    }
+    if (AUTO_LOGIN && !IN_IFRAME && CLOUD.enabled && !CLOUD.user) { $('#authToggle')?.click(); }
   }, 600);
 
-  // Live small clock + title
   setInterval(function(){
     var planned=(selectedMode==='work'? S.sessionMinutes : effBreak(S.sessionMinutes))*60000;
     var ms=(Timer.mode==='idle'||Timer.mode==='paused')? (Timer.mode==='paused'?Timer.remainingMs:planned) : Timer.remainingMs;
