@@ -80,11 +80,9 @@
   th,td{padding:8px 6px;border-bottom:1px solid var(--panelBorder);font-size:13px;text-align:left}
   .notice{font-size:12px;color:var(--soft)}
 
-  /* Toast + auth hint */
+  /* Toast */
   .toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%) translateY(10px);background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.25);padding:10px 14px;border-radius:10px;color:#fff;font-weight:700;opacity:0;pointer-events:none;transition:opacity .25s, transform .25s;z-index:7}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-  .auth-hint{position:fixed;left:50%;top:70px;transform:translateX(-50%);background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.25);padding:8px 12px;border-radius:10px;font-size:12px;display:none;z-index:8}
-  .auth-hint.show{display:block}
 </style>
 </head>
 <body>
@@ -104,9 +102,6 @@
       <span id="tzLabel"></span>
     </div>
   </div>
-
-  <!-- Inline auth note for iframe environments -->
-  <div id="authHint" class="auth-hint"></div>
 
   <!-- HERO -->
   <main class="hero" aria-live="polite">
@@ -244,8 +239,7 @@
 /* ===== Query flags ===== */
 var Q = new URLSearchParams(location.search);
 var NS = Q.get('ns') || 'default';
-var AUTO_LOGIN = Q.get('autologin') === '1';
-var UID_PARAM = Q.get('uid') || '';   // << for Notion embed read-only
+var UID_PARAM = Q.get('uid') || '';   // for Notion embed read-only
 var IN_IFRAME = (function(){ try { return window.top !== window.self; } catch (_) { return true; }})();
 var TRANSPARENT = Q.get('transparent') === '1';
 if(TRANSPARENT) document.body.style.background='transparent';
@@ -259,7 +253,6 @@ function clamp(v,min,max){ return Math.min(max,Math.max(min,v)); }
 function fmtHM(ms){ ms=Math.max(0,Math.floor(ms/1000)); var h=Math.floor(ms/3600), m=Math.floor((ms%3600)/60), s=ms%60; return (h?String(h).padStart(2,'0')+":" :"")+String(m).padStart(2,'0')+":"+String(s).padStart(2,'0'); }
 function hms(){ var d=new Date(); return d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
 function showToast(msg){ var t=$('#toast'); if(!t) return; t.textContent=msg; t.classList.add('show'); clearTimeout(showToast._tid); showToast._tid=setTimeout(function(){t.classList.remove('show');},2500); }
-function storageAvailable(type){ try{ var s=window[type]; var x="__t"+Math.random(); s.setItem(x,"1"); var ok=s.getItem(x)==="1"; s.removeItem(x); return ok; }catch(e){ return false; } }
 
 /* ===== State ===== */
 var LS_KEY="focusClock.hero.v2."+NS;
@@ -271,7 +264,7 @@ var DEF={
   background:{mode:'gradient', color:'#0b0e14', imageDataUrl:null, videoUrl:''},
   notes:'', todos:'', notionSync:{enabled:false,endpoint:'',databaseId:'',widgetKey:''}, lastSynced:{},
   notifyEnabled:false,
-  publicMirrorEnabled:true,     // << default ON so Notion can work out-of-the-box
+  publicMirrorEnabled:true,
   updatedAtMs:0
 };
 function load(){ try{ var raw=localStorage.getItem(LS_KEY); S = raw? Object.assign({}, DEF, JSON.parse(raw)) : deepClone(DEF);}catch(e){ S=deepClone(DEF);} normalize(); }
@@ -404,65 +397,37 @@ var firebaseConfig = {
   appId: "1:131829224528:web:e1c75d85e1311c30026d55"
 };
 
-/* ===== Cloud auth + public mirror ===== */
+/* ===== Cloud: auth + public mirror ===== */
 var CLOUD = {enabled:false, app:null, auth:null, db:null, user:null, unsub:null, unsubPublic:null};
 
 function initCloud(){
   try{
-    if(!firebaseConfig || !firebaseConfig.apiKey){ CLOUD.enabled=false; updateAuthUI(); return; }
+    if(!firebaseConfig || !firebaseConfig.apiKey){ CLOUD.enabled=false; return; }
     CLOUD.app  = firebase.initializeApp(firebaseConfig);
-    CLOUD.auth = firebase.auth();
     CLOUD.db   = firebase.firestore();
+    CLOUD.auth = firebase.auth();
     CLOUD.enabled = true;
 
-    CLOUD.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(function(){});
-
-    CLOUD.auth.onAuthStateChanged(function(user){
-      CLOUD.user = user || null;
-      updateAuthUI();
-      if(CLOUD.unsub){ CLOUD.unsub(); CLOUD.unsub=null; }
-      if(user){ syncFromCloud(); $('#uidLabel').textContent='UID: '+user.uid; }
-    });
-  }catch(e){ console.warn("Cloud init failed:", e); CLOUD.enabled=false; updateAuthUI(); }
-}
-
-function authErrorHint(msg, show){
-  var box = $('#authHint'); if(!box) return;
-  if(!show){ box.classList.remove('show'); return; }
-  box.textContent = msg;
-  box.classList.add('show');
-}
-
-function updateAuthUI(){
-  var btn=$('#authToggle'); if(!btn) return;
-
-  if(!CLOUD.enabled){
-    btn.textContent='🔐 Sign in';
-    btn.title='Add Firebase config';
-    btn.onclick=function(){ alert('Add your Firebase config in index.html, then reload.'); };
-    return;
-  }
-
-  if (IN_IFRAME && !CLOUD.user) {
-    // In embed: we rely on public mirror. If UID not supplied, guide user.
-    if (!UID_PARAM) {
-      authErrorHint('Embed is read-only. Add ?uid=YOUR_UID to the URL (use “Copy Notion URL” from the full app).', true);
+    if (!IN_IFRAME) {
+      CLOUD.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(function(){});
+      CLOUD.auth.onAuthStateChanged(function(user){
+        CLOUD.user = user || null;
+        renderAuthButton();
+        if(CLOUD.unsub){ CLOUD.unsub(); CLOUD.unsub=null; }
+        if(user){ syncFromCloud(); $('#uidLabel').textContent='UID: '+user.uid; }
+      });
     } else {
-      authErrorHint('Read-only from public mirror. Open full app to sign in.', true);
-      listenPublic(UID_PARAM);
+      // In iframe we NEVER trigger sign-in; optionally read public mirror if uid supplied
+      renderAuthButton(); // hides it
+      if (UID_PARAM) listenPublic(UID_PARAM);
     }
-    btn.textContent = '🔓 Open full app to sign in';
-    btn.onclick = function(){
-      var base = window.location.href.split('#')[0].split('?')[0];
-      var glue = base.includes('?') ? '&' : '?';
-      var url  = base + glue + 'autologin=1';
-      window.open(url, '_blank');
-    };
-    return;
-  } else {
-    authErrorHint('', false);
-  }
+  }catch(e){ console.warn("Cloud init failed:", e); CLOUD.enabled=false; }
+}
 
+function renderAuthButton(){
+  var btn=$('#authToggle'); if(!btn) return;
+  if (IN_IFRAME) { btn.style.display='none'; return; }     // hide in Notion embeds
+  if(!CLOUD.enabled){ btn.textContent='🔐 Sign in'; btn.onclick=function(){ alert('Add Firebase config'); }; return; }
   if(CLOUD.user){
     var name=(CLOUD.user.displayName||CLOUD.user.email||'Account').split(' ')[0];
     btn.textContent='🔓 Sign out ('+name+')';
@@ -473,9 +438,10 @@ function updateAuthUI(){
       var provider=new firebase.auth.GoogleAuthProvider();
       provider.setCustomParameters({prompt:'select_account'});
       CLOUD.auth.signInWithPopup(provider).catch(function(e){
-        var canRedirect = !IN_IFRAME && storageAvailable('sessionStorage');
-        if (canRedirect) return CLOUD.auth.signInWithRedirect(provider);
-        alert('Popup blocked. Please allow popups for this site and try again.');
+        // If popup blocked, fallback to redirect (top-level only)
+        CLOUD.auth.signInWithRedirect(provider).catch(function(err){
+          alert('Sign-in blocked. Please allow popups or try another browser.\n'+(err && err.message ? err.message : ''));
+        });
       });
     };
   }
@@ -492,7 +458,7 @@ function applyRemoteState(remote){
   refreshStats();
 }
 
-// Read-only public listener (for Notion embed)
+// Read-only public listener (embed)
 function listenPublic(uid){
   if (!CLOUD.enabled || !uid) return;
   if (CLOUD.unsubPublic) { CLOUD.unsubPublic(); CLOUD.unsubPublic = null; }
@@ -526,7 +492,6 @@ var cloudTimer=null;
 function scheduleCloudSave(){ if(!(CLOUD.enabled && CLOUD.user)) return; if(cloudTimer) clearTimeout(cloudTimer); cloudTimer=setTimeout(saveToCloud, 500); }
 
 function filteredPublicState(s){
-  // Publish only what’s needed for embeds (avoid notes/todos/background images)
   return {
     goalMinutes:s.goalMinutes, sessionMinutes:s.sessionMinutes,
     breakMinutes:s.breakMinutes, breakPolicy:s.breakPolicy, breakThreshold:s.breakThreshold,
@@ -601,7 +566,7 @@ function wire(){
   $('#pubMirrorEnable').checked=!!S.publicMirrorEnabled;
   $('#pubMirrorEnable').onchange=function(e){ S.publicMirrorEnabled=!!e.target.checked; save(); if(CLOUD.user) saveToCloud(); };
   $('#copyNotionUrl').onclick=function(){
-    if(!CLOUD.user){ alert('Sign in first (top-level tab).'); return; }
+    if(!(CLOUD && CLOUD.user)){ alert('Sign in first in the full app.'); return; }
     var base = window.location.href.split('#')[0].split('?')[0];
     var url = base + '?uid=' + encodeURIComponent(CLOUD.user.uid) + '&ns=' + encodeURIComponent(NS) + '&transparent=1';
     navigator.clipboard.writeText(url).then(function(){ showToast('Copied Notion URL'); }, function(){ alert(url); });
@@ -651,11 +616,7 @@ function boot(){
   refreshStats();
   wire();
   initCloud();
-  ensurePermission();
-
-  setTimeout(function(){
-    if (AUTO_LOGIN && !IN_IFRAME && CLOUD.enabled && !CLOUD.user) { $('#authToggle')?.click(); }
-  }, 600);
+  if(S.notifyEnabled) ensurePermission();
 
   setInterval(function(){
     var planned=(selectedMode==='work'? S.sessionMinutes : effBreak(S.sessionMinutes))*60000;
