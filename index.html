@@ -6,47 +6,69 @@
 <title>Focus Clock — Hero</title>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap">
-<!-- Firebase SDKs (compat) -->
+
+<!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-firestore-compat.js"></script>
 
 <style>
-  :root{ --accent:#ffffff; --muted:rgba(255,255,255,.82); --soft:rgba(255,255,255,.65); --panel:rgba(12,14,18,.72); --panelBorder:rgba(255,255,255,.12); }
+  :root{ --accent:#ffffff; --muted:rgba(255,255,255,.82); --soft:rgba(255,255,255,.65);
+         --panel:rgba(12,14,18,.72); --panelBorder:rgba(255,255,255,.12); }
   *{box-sizing:border-box} html,body{height:100%}
   body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;color:#fff;background:#0b0e14;overflow:hidden}
+
+  /* BACKGROUND */
   #bgLayer{position:fixed;inset:0;z-index:-2}
   .live-gradient{position:absolute;inset:-15%;filter:blur(40px);background:linear-gradient(120deg,#2b5876,#4e4376,#0f2027);animation:hue 40s linear infinite;opacity:.9}
   @keyframes hue{from{filter:hue-rotate(0deg) blur(40px)}to{filter:hue-rotate(360deg) blur(40px)}}
   #bgImage,#bgVideo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+
+  /* TOP BAR: small live clock + tz */
   .topbar{position:fixed;inset:12px 16px auto 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;color:var(--muted);font-weight:600;z-index:5}
   .top-left,.top-right{display:flex;gap:12px;align-items:center}
   .clock{font-variant-numeric:tabular-nums;font-weight:700;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.15);padding:4px 8px;border-radius:8px;color:#fff}
+
+  /* HERO */
   .hero{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:18px}
   .tabs-line{width:min(900px,92vw);max-width:900px;position:relative;margin-bottom:12px}
   .tabs-line::before{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(255,255,255,.35);transform:translateY(-50%)}
   .focus-tabs{position:relative;display:inline-flex;gap:14px;align-items:center;padding:0 14px}
   .focus-tabs button{appearance:none;background:transparent;border:none;color:var(--soft);font-weight:800;letter-spacing:.18em;text-transform:uppercase;cursor:pointer;padding:6px 8px;font-size:13px}
   .focus-tabs button.active{color:#fff}
+
+  /* Compact break controller */
   .mini-ctrl{display:inline-flex;align-items:center;margin-left:8px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.22);border-radius:999px}
   .mini-btn{padding:3px 8px;border:none;background:transparent;color:#fff;cursor:pointer;font-weight:800;font-size:12px}
   .mini-btn:hover{background:rgba(255,255,255,.12)}
   .mini-val{padding:3px 8px;font-size:12px;opacity:.95}
+
   .time{font-size:clamp(48px,16vw,180px);font-weight:800;line-height:1;letter-spacing:.02em;text-shadow:0 10px 40px rgba(0,0,0,.45)}
   .subtitle{margin-top:8px;font-size:clamp(16px,2.5vw,28px);color:#fff;text-shadow:0 8px 30px rgba(0,0,0,.5)}
+
   .cta{margin-top:20px;padding:12px 26px;border:1.8px solid rgba(255,255,255,.75);color:#fff;background:rgba(255,255,255,.12);border-radius:999px;font-weight:800;letter-spacing:.06em;cursor:pointer;backdrop-filter:blur(6px)}
   .cta:hover{background:rgba(255,255,255,.18)}
   .cta-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center}
   .cta.secondary{border-color:rgba(255,255,255,.55);background:rgba(255,255,255,.08)}
   .cta.secondary:hover{background:rgba(255,255,255,.14)}
-  .streak-hero{margin-top:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:12px;color:rgba(255,255,255,.95);display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.25);border-radius:999px;backdrop-filter:blur(6px);box-shadow:0 10px 30px rgba(0,0,0,.25);}
+
+  /* Streak pill */
+  .streak-hero{margin-top:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:12px;color:rgba(255,255,255,.95);
+               display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.25);
+               border-radius:999px;backdrop-filter:blur(6px);box-shadow:0 10px 30px rgba(0,0,0,.25);}
+
+  /* Bottom bar (moved controls here) */
   .bottom{position:fixed;inset:auto 16px 14px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--muted);z-index:5;flex-wrap:wrap}
   .links{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
   .quickbtn,.iconbtn{background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.15);color:#fff;padding:6px 10px;border-radius:10px;font-weight:600;cursor:pointer}
   .quickbtn:hover,.iconbtn:hover{background:rgba(255,255,255,.15)}
   .hidden{display:none}
+
+  /* Centered quote */
   .quote{margin-top:18px;text-align:center;max-width:min(900px,90vw);font-size:14px;color:#fff;text-shadow:0 6px 24px rgba(0,0,0,.55)}
   .quote .author{opacity:.8;margin-left:6px}
+
+  /* Panels */
   .panel{position:fixed;right:16px;top:70px;bottom:16px;width:min(720px,92vw);background:var(--panel);border:1px solid var(--panelBorder);border-radius:14px;backdrop-filter:blur(16px) saturate(120%);padding:14px;overflow:auto;display:none;z-index:6}
   .panel.active{display:block}
   h2{margin:4px 0 10px 0;font-size:20px}
@@ -57,171 +79,176 @@
   table{width:100%;border-collapse:collapse;margin-top:8px}
   th,td{padding:8px 6px;border-bottom:1px solid var(--panelBorder);font-size:13px;text-align:left}
   .notice{font-size:12px;color:var(--soft)}
+
+  /* Toast + auth hint */
   .toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%) translateY(10px);background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.25);padding:10px 14px;border-radius:10px;color:#fff;font-weight:700;opacity:0;pointer-events:none;transition:opacity .25s, transform .25s;z-index:7}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .auth-hint{position:fixed;left:50%;top:70px;transform:translateX(-50%);background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.25);padding:8px 12px;border-radius:10px;font-size:12px;display:none;z-index:8}
+  .auth-hint.show{display:block}
 </style>
 </head>
 <body>
+  <!-- BACKGROUND -->
+  <div id="bgLayer">
+    <div id="liveGradient" class="live-gradient"></div>
+    <img id="bgImage" alt="" style="display:none">
+    <video id="bgVideo" muted autoplay loop playsinline style="display:none"></video>
+  </div>
 
-<!-- BACKGROUND -->
-<div id="bgLayer">
-  <div id="liveGradient" class="live-gradient"></div>
-  <img id="bgImage" alt="" style="display:none">
-  <video id="bgVideo" muted autoplay loop playsinline style="display:none"></video>
-</div>
-
-<!-- TOP BAR -->
-<div class="topbar">
-  <div class="top-left"><span id="nowClock" class="clock">--:--:--</span></div>
-  <div class="top-right"><span id="tzLabel"></span></div>
-</div>
-
-<!-- HERO -->
-<main class="hero" aria-live="polite">
-  <div class="tabs-line">
-    <div class="focus-tabs">
-      <button id="tabFocus" class="active">FOCUS</button>
-      <button id="tabBreak">BREAK</button>
-      <span class="mini-ctrl" id="breakCtrl">
-        <button class="mini-btn" id="breakDec" title="Shorter break">−</button>
-        <span id="breakLenBadge" class="mini-val">5m</span>
-        <button class="mini-btn" id="breakInc" title="Longer break">+</button>
-      </span>
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="top-left">
+      <span id="nowClock" class="clock">--:--:--</span>
+    </div>
+    <div class="top-right">
+      <span id="tzLabel"></span>
     </div>
   </div>
 
-  <div id="timeText" class="time">25:00</div>
-  <div id="subText" class="subtitle">Focus time.</div>
+  <!-- Inline auth note for iframe environments -->
+  <div id="authHint" class="auth-hint"></div>
 
-  <div class="streak-hero" id="streakHeroWrap">🔥 <span id="streakHero">0</span>-day streak</div>
+  <!-- HERO -->
+  <main class="hero" aria-live="polite">
+    <div class="tabs-line">
+      <div class="focus-tabs">
+        <button id="tabFocus" class="active">FOCUS</button>
+        <button id="tabBreak">BREAK</button>
+        <span class="mini-ctrl" id="breakCtrl">
+          <button class="mini-btn" id="breakDec" title="Shorter break">−</button>
+          <span id="breakLenBadge" class="mini-val">5m</span>
+          <button class="mini-btn" id="breakInc" title="Longer break">+</button>
+        </span>
+      </div>
+    </div>
 
-  <div class="cta-row">
-    <button id="startStop" class="cta">START</button>
-    <button id="resetBtn" class="cta secondary" title="Reset to the set time">⟲ RESET</button>
+    <div id="timeText" class="time">25:00</div>
+    <div id="subText" class="subtitle">Focus time.</div>
+
+    <div class="streak-hero" id="streakHeroWrap">
+      🔥 <span id="streakHero">0</span>-day streak
+    </div>
+
+    <div class="cta-row">
+      <button id="startStop" class="cta">START</button>
+      <button id="resetBtn" class="cta secondary" title="Reset to the set time">⟲ RESET</button>
+    </div>
+
+    <div class="quote" id="quoteBox">“Small progress is still progress.” <span class="author">— Unknown</span></div>
+
+    <audio id="ding" preload="auto">
+      <source src="data:audio/wav;base64,UklGRjQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABY5YWFhYWFhYWFhYQAA" type="audio/wav">
+    </audio>
+  </main>
+
+  <!-- BOTTOM -->
+  <div class="bottom">
+    <div class="links" id="leftLinks">
+      <button id="openNotes" class="quickbtn">Notes</button>
+      <button id="openTodos" class="quickbtn">Todo</button>
+      <button id="exportBtn" class="quickbtn">Export JSON</button>
+      <input id="importFile" type="file" accept="application/json" class="hidden">
+      <button id="importBtn" class="quickbtn">Import…</button>
+      <button id="resetData" class="quickbtn">Reset</button>
+    </div>
+
+    <div class="links" id="rightLinks">
+      <button class="iconbtn" id="authToggle">🔐 Sign in</button>
+      <button class="iconbtn" id="openStats">📈 Stats</button>
+      <button class="iconbtn" id="openBg">🖼️ Background</button>
+      <button class="iconbtn" id="openSettings">⚙️ Settings</button>
+      <button class="iconbtn" id="openSync">🔗 Sync</button>
+    </div>
   </div>
 
-  <div class="quote" id="quoteBox">“Small progress is still progress.” <span class="author">— Unknown</span></div>
+  <!-- PANELS -->
+  <section id="panel-stats" class="panel">
+    <h2>Progress</h2>
+    <div class="row" style="margin-bottom:8px;">
+      <span class="pill">Goal <span id="goalPill">25</span>m</span>
+      <span class="pill">Streak <span id="streakPill">0</span>🔥</span>
+      <span class="pill">Free days <span id="freePill">0</span>🎟️</span>
+      <span class="pill">Next free in <span id="nextFreeIn">14d</span></span>
+    </div>
+    <canvas id="chart" height="170"></canvas>
+    <table id="logTable"><thead><tr><th>Date</th><th>Minutes</th><th>Met goal?</th><th>Used free day?</th></tr></thead><tbody></tbody></table>
+    <div class="notice">If the chart is blank, that’s fine—Chart.js isn’t required for the timer to work.</div>
+  </section>
 
-  <audio id="ding" preload="auto">
-    <source src="data:audio/wav;base64,UklGRjQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABY5YWFhYWFhYWFhYQAA" type="audio/wav">
-  </audio>
-</main>
+  <section id="panel-bg" class="panel">
+    <h2>Background</h2>
+    <div class="row" style="margin-bottom:8px;">
+      <button class="iconbtn" data-bg="gradient">Live gradient</button>
+      <button class="iconbtn" data-bg="image">Image…</button>
+      <button class="iconbtn" data-bg="video">Video URL…</button>
+      <button class="iconbtn" data-bg="color">Solid color…</button>
+      <button class="iconbtn" id="bgClear">Reset</button>
+    </div>
+    <div class="notice">Tip: add <code>&transparent=1</code> in the URL for transparent background (when embedded via iframe).</div>
+  </section>
 
-<!-- BOTTOM -->
-<div class="bottom">
-  <div class="links" id="leftLinks">
-    <button id="openNotes" class="quickbtn">Notes</button>
-    <button id="openTodos" class="quickbtn">Todo</button>
-    <button id="exportBtn" class="quickbtn">Export JSON</button>
-    <input id="importFile" type="file" accept="application/json" class="hidden">
-    <button id="importBtn" class="quickbtn">Import…</button>
-    <button id="resetData" class="quickbtn">Reset</button>
-  </div>
+  <section id="panel-settings" class="panel">
+    <h2>Settings</h2>
+    <div class="row">
+      <div><div class="notice">Session (min)</div><input id="sessionInput" type="number" min="1" max="300" value="25" style="width:120px"></div>
+      <div><div class="notice">Daily goal (min)</div><input id="goalInput" type="number" min="10" max="600" value="25" style="width:120px"></div>
+    </div>
+    <h3 style="margin:10px 0 6px;">Break policy</h3>
+    <div class="row">
+      <label class="pill"><input type="radio" name="breakPolicy" value="always"> Always break</label>
+      <label class="pill"><input type="radio" name="breakPolicy" value="long-only" checked> Only if session &gt; threshold</label>
+      <label class="pill"><input type="radio" name="breakPolicy" value="never"> Never break</label>
+    </div>
+    <div class="row" style="margin-top:6px;">
+      <div><div class="notice">Threshold (min)</div><input id="breakThresholdInput" type="number" min="1" max="300" value="30" style="width:120px"></div>
+      <div><div class="notice">Break length (min)</div><input id="breakLenInput" type="number" min="0" max="120" value="5" style="width:120px"></div>
+    </div>
 
-  <div class="links" id="rightLinks">
-    <button class="iconbtn" id="authToggle">🔐 Sign in</button>
-    <button class="iconbtn" id="openStats">📈 Stats</button>
-    <button class="iconbtn" id="openBg">🖼️ Background</button>
-    <button class="iconbtn" id="openSettings">⚙️ Settings</button>
-    <button class="iconbtn" id="openSync">🔗 Sync</button>
-  </div>
-</div>
+    <h3 style="margin:12px 0 6px;">Notifications</h3>
+    <label class="pill"><input type="checkbox" id="notifyEnable"> Desktop notification when session completes</label>
 
-<!-- PANELS -->
-<section id="panel-stats" class="panel">
-  <h2>Progress</h2>
-  <div class="row" style="margin-bottom:8px;">
-    <span class="pill">Goal <span id="goalPill">25</span>m</span>
-    <span class="pill">Streak <span id="streakPill">0</span>🔥</span>
-    <span class="pill">Free days <span id="freePill">0</span>🎟️</span>
-    <span class="pill">Next free in <span id="nextFreeIn">14d</span></span>
-  </div>
-  <canvas id="chart" height="170"></canvas>
-  <table id="logTable"><thead><tr><th>Date</th><th>Minutes</th><th>Met goal?</th><th>Used free day?</th></tr></thead><tbody></tbody></table>
-  <div class="notice">If the chart is blank, that’s fine—Chart.js isn’t required for the timer to work.</div>
-</section>
+    <h3 style="margin:12px 0 6px;">Public mirror for Notion</h3>
+    <label class="pill"><input type="checkbox" id="pubMirrorEnable"> Expose read-only profile (for embeds)</label>
+    <button id="copyNotionUrl" class="iconbtn" title="Copy an embed URL with your UID">Copy Notion URL</button>
+    <span class="notice" id="uidLabel"></span>
 
-<section id="panel-bg" class="panel">
-  <h2>Background</h2>
-  <div class="row" style="margin-bottom:8px;">
-    <button class="iconbtn" data-bg="gradient">Live gradient</button>
-    <button class="iconbtn" data-bg="image">Image…</button>
-    <button class="iconbtn" data-bg="video">Video URL…</button>
-    <button class="iconbtn" data-bg="color">Solid color…</button>
-    <button class="iconbtn" id="bgClear">Reset</button>
-  </div>
-  <div class="notice">Tip: add <code>&transparent=1</code> in the URL for transparent background (when embedded via iframe).</div>
-</section>
+    <h3 style="margin:12px 0 6px;">Free-day automation</h3>
+    <label class="pill"><input type="checkbox" id="autoApplyChk"> Auto-apply free days to recent misses</label>
+    <div class="row" style="margin-top:8px;">
+      <button id="applyFreeYesterday" class="iconbtn">Apply for yesterday</button>
+      <button id="manageMisses" class="iconbtn">Manage missed days…</button>
+    </div>
 
-<section id="panel-settings" class="panel">
-  <h2>Settings</h2>
-  <div class="row">
-    <div><div class="notice">Session (min)</div><input id="sessionInput" type="number" min="1" max="300" value="25" style="width:120px"></div>
-    <div><div class="notice">Daily goal (min)</div><input id="goalInput" type="number" min="10" max="600" value="25" style="width:120px"></div>
-  </div>
+    <h3 style="margin:12px 0 6px;">Notes & Todo (saved locally)</h3>
+    <textarea id="notesBox" placeholder="Quick notes…"></textarea>
+    <textarea id="todoBox" placeholder="Todo list (one per line)…"></textarea>
+  </section>
 
-  <h3 style="margin:10px 0 6px;">Break policy</h3>
-  <div class="row">
-    <label class="pill"><input type="radio" name="breakPolicy" value="always"> Always break</label>
-    <label class="pill"><input type="radio" name="breakPolicy" value="long-only" checked> Only if session &gt; threshold</label>
-    <label class="pill"><input type="radio" name="breakPolicy" value="never"> Never break</label>
-  </div>
-  <div class="row" style="margin-top:6px;">
-    <div><div class="notice">Threshold (min)</div><input id="breakThresholdInput" type="number" min="1" max="300" value="30" style="width:120px"></div>
-    <div><div class="notice">Break length (min)</div><input id="breakLenInput" type="number" min="0" max="120" value="5" style="width:120px"></div>
-  </div>
+  <section id="panel-sync" class="panel">
+    <h2>Notion Sync (optional)</h2>
+    <div class="row">
+      <input id="syncEndpoint" placeholder="https://your-app.vercel.app/api/notion-sync" style="flex:1;min-width:240px">
+      <input id="syncDb" placeholder="Notion Database ID" style="flex:1;min-width:200px">
+      <input id="syncKey" placeholder="Widget key (optional)" style="flex:1;min-width:160px">
+    </div>
+    <div class="row" style="margin-top:8px;">
+      <label class="pill"><input type="checkbox" id="syncEnable"> Enable sync</label>
+      <button id="syncNow" class="iconbtn">Sync now</button>
+    </div>
+    <div class="notice">Sends daily totals (date, minutes, goal, usedFreeDay) to your endpoint. Keep your Notion token server-side.</div>
+  </section>
 
-  <h3 style="margin:12px 0 6px;">Notifications</h3>
-  <label class="pill"><input type="checkbox" id="notifyEnable"> Desktop notification when session completes</label>
-
-  <h3 style="margin:12px 0 6px;">Public mirror for Notion</h3>
-  <label class="pill"><input type="checkbox" id="pubMirrorEnable"> Expose read-only profile (for embeds)</label>
-  <div class="row" style="gap:8px;margin-top:6px;">
-    <button id="copyNotionUrl" class="iconbtn" title="Copy read-only embed URL with your UID">Copy Notion URL (read)</button>
-    <button id="copyNotionUrlWrite" class="iconbtn" title="Copy write-enabled embed URL with widget key">Copy Notion URL (write)</button>
-  </div>
-  <span class="notice" id="uidLabel"></span>
-
-  <h3 style="margin:12px 0 6px;">Free-day automation</h3>
-  <label class="pill"><input type="checkbox" id="autoApplyChk"> Auto-apply free days to recent misses</label>
-  <div class="row" style="margin-top:8px;">
-    <button id="applyFreeYesterday" class="iconbtn">Apply for yesterday</button>
-    <button id="manageMisses" class="iconbtn">Manage missed days…</button>
-  </div>
-
-  <h3 style="margin:12px 0 6px;">Notes & Todo (saved locally)</h3>
-  <textarea id="notesBox" placeholder="Quick notes…"></textarea>
-  <textarea id="todoBox" placeholder="Todo list (one per line)…"></textarea>
-</section>
-
-<section id="panel-sync" class="panel">
-  <h2>Notion Sync (optional)</h2>
-  <div class="row">
-    <input id="syncEndpoint" placeholder="https://your-app.example/functions/notion-sync" style="flex:1;min-width:240px">
-    <input id="syncDb" placeholder="Notion Database ID" style="flex:1;min-width:200px">
-    <input id="syncKey" placeholder="Widget key (optional, used for write-embed URL)" style="flex:1;min-width:220px">
-  </div>
-  <div class="row" style="margin-top:8px;">
-    <label class="pill"><input type="checkbox" id="syncEnable"> Enable sync</label>
-    <button id="syncNow" class="iconbtn">Sync now</button>
-  </div>
-  <div class="notice">Sends daily totals (date, minutes, goal, usedFreeDay) to your endpoint. Keep your Notion token server-side.</div>
-</section>
-
-<div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <script>
-/* ===== URL params / constants ===== */
+/* ===== Query flags ===== */
 var Q = new URLSearchParams(location.search);
 var NS = Q.get('ns') || 'default';
-var UID_PARAM = Q.get('uid') || '';   // read-only public mirror mode
-var KEY_PARAM = Q.get('key') || '';   // write-enabled embed via custom token
+var AUTO_LOGIN = Q.get('autologin') === '1';
+var UID_PARAM = Q.get('uid') || '';   // << for Notion embed read-only
 var IN_IFRAME = (function(){ try { return window.top !== window.self; } catch (_) { return true; }})();
 var TRANSPARENT = Q.get('transparent') === '1';
-if (TRANSPARENT) document.body.style.background='transparent';
-
-/* IMPORTANT: set this to your Firebase Cloud Functions URL */
-var TOKEN_ENDPOINT = 'https://us-central1-YOUR_PROJECT.cloudfunctions.net/issueEmbedToken';
+if(TRANSPARENT) document.body.style.background='transparent';
 
 /* ===== Utils ===== */
 function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
@@ -232,6 +259,7 @@ function clamp(v,min,max){ return Math.min(max,Math.max(min,v)); }
 function fmtHM(ms){ ms=Math.max(0,Math.floor(ms/1000)); var h=Math.floor(ms/3600), m=Math.floor((ms%3600)/60), s=ms%60; return (h?String(h).padStart(2,'0')+":" :"")+String(m).padStart(2,'0')+":"+String(s).padStart(2,'0'); }
 function hms(){ var d=new Date(); return d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
 function showToast(msg){ var t=$('#toast'); if(!t) return; t.textContent=msg; t.classList.add('show'); clearTimeout(showToast._tid); showToast._tid=setTimeout(function(){t.classList.remove('show');},2500); }
+function storageAvailable(type){ try{ var s=window[type]; var x="__t"+Math.random(); s.setItem(x,"1"); var ok=s.getItem(x)==="1"; s.removeItem(x); return ok; }catch(e){ return false; } }
 
 /* ===== State ===== */
 var LS_KEY="focusClock.hero.v2."+NS;
@@ -241,11 +269,9 @@ var DEF={
   breakMinutes:5, breakPolicy:'long-only', breakThreshold:30,
   autoApplyFreeDays:false, days:[], freeDayBank:0, runStartDate:null, runMilestonesAwarded:0, lastSeenDate:null,
   background:{mode:'gradient', color:'#0b0e14', imageDataUrl:null, videoUrl:''},
-  notes:'', todos:'',
-  notionSync:{enabled:false,endpoint:'',databaseId:'',widgetKey:''},
-  lastSynced:{},
+  notes:'', todos:'', notionSync:{enabled:false,endpoint:'',databaseId:'',widgetKey:''}, lastSynced:{},
   notifyEnabled:false,
-  publicMirrorEnabled:true,
+  publicMirrorEnabled:true,     // << default ON so Notion can work out-of-the-box
   updatedAtMs:0
 };
 function load(){ try{ var raw=localStorage.getItem(LS_KEY); S = raw? Object.assign({}, DEF, JSON.parse(raw)) : deepClone(DEF);}catch(e){ S=deepClone(DEF);} normalize(); }
@@ -278,8 +304,10 @@ function recompute(){
   S.lastSeenDate=today; save(); return streak;
 }
 
-/* ===== Breaks / notifications / timer ===== */
+/* ===== Break policy ===== */
 function effBreak(mins){ return (S.breakPolicy==='never'?0 : S.breakPolicy==='always'?S.breakMinutes : (mins>S.breakThreshold?S.breakMinutes:0)); }
+
+/* ===== Notifications ===== */
 function canNotify(){ return S.notifyEnabled && 'Notification' in window; }
 function ensurePermission(){ if(!canNotify()) return; if(Notification.permission==='default'){ Notification.requestPermission().catch(function(){}); } }
 function notifyDesktop(title, body){
@@ -288,6 +316,8 @@ function notifyDesktop(title, body){
   if(Notification.permission==='granted') doShow();
   else if(Notification.permission==='default'){ Notification.requestPermission().then(function(p){ if(p==='granted') doShow(); }); }
 }
+
+/* ===== Timer ===== */
 var selectedMode='work';
 var Timer={
   mode:'idle', durationMs:0, remainingMs:0, endAt:null, raf:null, prevMode:'work',
@@ -320,7 +350,7 @@ function updateModeLabels(){
   if(Timer.mode==='break'){ $('#tabBreak').classList.add('active'); $('#tabFocus').classList.remove('active'); $('#subText').textContent='Break time.'; $('#startStop').textContent='PAUSE'; }
 }
 
-/* ===== Panels / background / stats / quotes ===== */
+/* ===== Panels & background ===== */
 function showPanel(id){ document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');}); $(id).classList.add('active'); }
 function hidePanels(){ document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');}); }
 function applyBackground(){
@@ -331,6 +361,8 @@ function applyBackground(){
   else if(S.background.mode==='video' && S.background.videoUrl){ vid.src=S.background.videoUrl; vid.style.display='block'; }
   else if(S.background.mode==='color'){ document.body.style.background=S.background.color||'#0b0e14'; }
 }
+
+/* ===== Stats ===== */
 function refreshStats(){
   var streak = recompute();
   $('#goalPill').textContent=S.goalMinutes;
@@ -339,14 +371,28 @@ function refreshStats(){
   var sh=document.getElementById('streakHero'); if (sh) sh.textContent = streak;
   var toNext = 14 - (streak % 14 || 14);
   $('#nextFreeIn').textContent=toNext+'d';
+
   var tb=$('#logTable tbody'); tb.innerHTML='';
   [].concat(S.days).sort(function(a,b){return b.date.localeCompare(a.date);}).slice(0,60).forEach(function(d){
     var tr=document.createElement('tr'); var meet=isSuccess(d);
-    tr.innerHTML='<td>'+new Date(d.date+"T00:00:00").toLocaleDateString([], {weekday:"short", month:"short", day:"numeric"})+
-                 '</td><td>'+d.minutes+'</td><td>'+(meet?'Yes':'No')+'</td><td>'+(d.usedFreeDay?'Yes':'No')+'</td>';
+    tr.innerHTML='<td>'+new Date(d.date+"T00:00:00").toLocaleDateString([], {weekday:"short", month:"short", day:"numeric"})+'</td><td>'+d.minutes+'</td><td>'+(meet?'Yes':'No')+'</td><td>'+(d.usedFreeDay?'Yes':'No')+'</td>';
     tb.appendChild(tr);
   });
 }
+
+/* ===== Notion sync (optional endpoint) ===== */
+function signatureFor(d){ return [d.minutes,S.goalMinutes,d.usedFreeDay].join('|'); }
+function queueSync(dateStr){
+  if(!(S.notionSync && S.notionSync.enabled && S.notionSync.endpoint && S.notionSync.databaseId)) return;
+  var d=getDay(dateStr); var sig=signatureFor(d);
+  if(S.lastSynced[dateStr]===sig) return;
+  fetch(S.notionSync.endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({databaseId:S.notionSync.databaseId, date:dateStr, minutes:d.minutes, goal:S.goalMinutes, usedFreeDay:d.usedFreeDay})})
+    .then(function(r){return r.json().catch(function(){return {};});})
+    .then(function(){ S.lastSynced[dateStr]=sig; save(); })
+    .catch(function(){});
+}
+
+/* ===== Quotes ===== */
 var QUOTES=[["You cannot swim for new horizons until you have courage to lose sight of the shore.","William Faulkner"],["Focus is the art of knowing what to ignore.","James Clear"],["The secret of getting ahead is getting started.","Mark Twain"],["It always seems impossible until it’s done.","Nelson Mandela"],["Small progress is still progress.","Unknown"]];
 function setQuote(){ var qa=QUOTES[(new Date().getDate())%QUOTES.length]; $('#quoteBox').innerHTML='“'+qa[0]+'” <span class="author">— '+qa[1]+'</span>'; }
 
@@ -358,8 +404,82 @@ var firebaseConfig = {
   appId: "1:131829224528:web:e1c75d85e1311c30026d55"
 };
 
-/* ===== Cloud: auth + public mirror (iframe-safe) ===== */
+/* ===== Cloud auth + public mirror ===== */
 var CLOUD = {enabled:false, app:null, auth:null, db:null, user:null, unsub:null, unsubPublic:null};
+
+function initCloud(){
+  try{
+    if(!firebaseConfig || !firebaseConfig.apiKey){ CLOUD.enabled=false; updateAuthUI(); return; }
+    CLOUD.app  = firebase.initializeApp(firebaseConfig);
+    CLOUD.auth = firebase.auth();
+    CLOUD.db   = firebase.firestore();
+    CLOUD.enabled = true;
+
+    CLOUD.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(function(){});
+
+    CLOUD.auth.onAuthStateChanged(function(user){
+      CLOUD.user = user || null;
+      updateAuthUI();
+      if(CLOUD.unsub){ CLOUD.unsub(); CLOUD.unsub=null; }
+      if(user){ syncFromCloud(); $('#uidLabel').textContent='UID: '+user.uid; }
+    });
+  }catch(e){ console.warn("Cloud init failed:", e); CLOUD.enabled=false; updateAuthUI(); }
+}
+
+function authErrorHint(msg, show){
+  var box = $('#authHint'); if(!box) return;
+  if(!show){ box.classList.remove('show'); return; }
+  box.textContent = msg;
+  box.classList.add('show');
+}
+
+function updateAuthUI(){
+  var btn=$('#authToggle'); if(!btn) return;
+
+  if(!CLOUD.enabled){
+    btn.textContent='🔐 Sign in';
+    btn.title='Add Firebase config';
+    btn.onclick=function(){ alert('Add your Firebase config in index.html, then reload.'); };
+    return;
+  }
+
+  if (IN_IFRAME && !CLOUD.user) {
+    // In embed: we rely on public mirror. If UID not supplied, guide user.
+    if (!UID_PARAM) {
+      authErrorHint('Embed is read-only. Add ?uid=YOUR_UID to the URL (use “Copy Notion URL” from the full app).', true);
+    } else {
+      authErrorHint('Read-only from public mirror. Open full app to sign in.', true);
+      listenPublic(UID_PARAM);
+    }
+    btn.textContent = '🔓 Open full app to sign in';
+    btn.onclick = function(){
+      var base = window.location.href.split('#')[0].split('?')[0];
+      var glue = base.includes('?') ? '&' : '?';
+      var url  = base + glue + 'autologin=1';
+      window.open(url, '_blank');
+    };
+    return;
+  } else {
+    authErrorHint('', false);
+  }
+
+  if(CLOUD.user){
+    var name=(CLOUD.user.displayName||CLOUD.user.email||'Account').split(' ')[0];
+    btn.textContent='🔓 Sign out ('+name+')';
+    btn.onclick=function(){ CLOUD.auth.signOut().catch(function(e){ alert('Sign-out failed: '+e.message); }); };
+  }else{
+    btn.textContent='🔐 Sign in';
+    btn.onclick=function(){
+      var provider=new firebase.auth.GoogleAuthProvider();
+      provider.setCustomParameters({prompt:'select_account'});
+      CLOUD.auth.signInWithPopup(provider).catch(function(e){
+        var canRedirect = !IN_IFRAME && storageAvailable('sessionStorage');
+        if (canRedirect) return CLOUD.auth.signInWithRedirect(provider);
+        alert('Popup blocked. Please allow popups for this site and try again.');
+      });
+    };
+  }
+}
 
 function profileRef(){ return CLOUD.db.collection('users').doc(CLOUD.user.uid).collection('profiles').doc(NS); }
 function publicRef(uid){ return CLOUD.db.collection('public').doc(uid).collection('profiles').doc(NS); }
@@ -372,7 +492,7 @@ function applyRemoteState(remote){
   refreshStats();
 }
 
-// Read-only public listener (embed)
+// Read-only public listener (for Notion embed)
 function listenPublic(uid){
   if (!CLOUD.enabled || !uid) return;
   if (CLOUD.unsubPublic) { CLOUD.unsubPublic(); CLOUD.unsubPublic = null; }
@@ -381,91 +501,6 @@ function listenPublic(uid){
     var d=doc.data(); var remote=d.state||d;
     applyRemoteState(remote);
   }, function(e){ console.warn('Public mirror listen error:', e); });
-}
-
-async function authenticateIframeWithWidgetKey(){
-  try{
-    if (!KEY_PARAM || !TOKEN_ENDPOINT || TOKEN_ENDPOINT.indexOf('YOUR_PROJECT') !== -1) return false;
-    const res = await fetch(TOKEN_ENDPOINT, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ key: KEY_PARAM, ns: NS })
-    });
-    if (!res.ok) {
-      console.warn('Failed to fetch custom token for iframe:', await res.text());
-      return false;
-    }
-    const data = await res.json();
-    if (!data || !data.token) return false;
-    await CLOUD.auth.signInWithCustomToken(data.token);
-    return true;
-  } catch (e){
-    console.warn('authenticateIframeWithWidgetKey error:', e);
-    return false;
-  }
-}
-
-function initCloud(){
-  try{
-    if(!firebaseConfig || !firebaseConfig.apiKey){ CLOUD.enabled=false; return; }
-    CLOUD.app  = firebase.initializeApp(firebaseConfig);
-    CLOUD.db   = firebase.firestore();
-    CLOUD.auth = firebase.auth();
-    CLOUD.enabled = true;
-
-    if (IN_IFRAME) {
-      // Don’t run OAuth in Notion; use in-memory auth + custom token
-      CLOUD.auth.setPersistence(firebase.auth.Auth.Persistence.NONE).catch(function(){});
-      authenticateIframeWithWidgetKey().then(function(ok){
-        renderAuthButton(); // hides in iframe
-        if (ok) {
-          CLOUD.user = CLOUD.auth.currentUser;
-          if (CLOUD.unsub) { CLOUD.unsub(); CLOUD.unsub = null; }
-          syncFromCloud();
-        } else if (UID_PARAM) {
-          // Fallback: read-only public mirror
-          listenPublic(UID_PARAM);
-        } else {
-          // Neither key nor uid: show subtle hint
-          showToast('Embed is read-only. Add ?uid=... (read) or ?key=... (write).');
-        }
-      });
-    } else {
-      // Top-level: normal Google OAuth
-      CLOUD.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(function(){});
-      CLOUD.auth.onAuthStateChanged(function(user){
-        CLOUD.user = user || null;
-        renderAuthButton();
-        if(CLOUD.unsub){ CLOUD.unsub(); CLOUD.unsub=null; }
-        if(user){ syncFromCloud(); $('#uidLabel').textContent='UID: '+user.uid; }
-      });
-    }
-  }catch(e){
-    console.warn("Cloud init failed:", e); CLOUD.enabled=false;
-  }
-}
-
-function renderAuthButton(){
-  var btn=$('#authToggle'); if(!btn) return;
-  if (IN_IFRAME) { btn.style.display='none'; return; } // hide controls inside Notion
-
-  if(!CLOUD.enabled){ btn.textContent='🔐 Sign in'; btn.onclick=function(){ alert('Add Firebase config'); }; return; }
-  if(CLOUD.user){
-    var name=(CLOUD.user.displayName||CLOUD.user.email||'Account').split(' ')[0];
-    btn.textContent='🔓 Sign out ('+name+')';
-    btn.onclick=function(){ CLOUD.auth.signOut().catch(function(e){ alert('Sign-out failed: '+e.message); }); };
-  }else{
-    btn.textContent='🔐 Sign in';
-    btn.onclick=function(){
-      var provider=new firebase.auth.GoogleAuthProvider();
-      provider.setCustomParameters({prompt:'select_account'});
-      CLOUD.auth.signInWithPopup(provider).catch(function(){
-        CLOUD.auth.signInWithRedirect(provider).catch(function(err){
-          alert('Sign-in blocked. Please allow popups or try another browser.\n'+(err && err.message ? err.message : ''));
-        });
-      });
-    };
-  }
 }
 
 function syncFromCloud(){
@@ -489,7 +524,9 @@ function syncFromCloud(){
 
 var cloudTimer=null;
 function scheduleCloudSave(){ if(!(CLOUD.enabled && CLOUD.user)) return; if(cloudTimer) clearTimeout(cloudTimer); cloudTimer=setTimeout(saveToCloud, 500); }
+
 function filteredPublicState(s){
+  // Publish only what’s needed for embeds (avoid notes/todos/background images)
   return {
     goalMinutes:s.goalMinutes, sessionMinutes:s.sessionMinutes,
     breakMinutes:s.breakMinutes, breakPolicy:s.breakPolicy, breakThreshold:s.breakThreshold,
@@ -498,30 +535,21 @@ function filteredPublicState(s){
     notifyEnabled:s.notifyEnabled, updatedAtMs:s.updatedAtMs
   };
 }
+
 function saveToCloud(){
   if(!(CLOUD.enabled && CLOUD.user)) return;
   var uid = CLOUD.user.uid;
   var ref=profileRef();
   var payload={ ns:NS, version:2, state:S, updatedAtMs:S.updatedAtMs||Date.now(), updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
   ref.set(payload,{merge:true}).catch(function(e){ console.warn('Cloud save failed:', e); });
+
+  // Also write public mirror if enabled
   if (S.publicMirrorEnabled) {
     publicRef(uid).set({ ns:NS, version:2, state: filteredPublicState(S),
                          updatedAtMs:S.updatedAtMs||Date.now(),
                          updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, {merge:true})
       .catch(function(e){ console.warn('Public mirror save failed:', e); });
   }
-}
-
-/* ===== Notion sync payload (optional) ===== */
-function signatureFor(d){ return [d.minutes,S.goalMinutes,d.usedFreeDay].join('|'); }
-function queueSync(dateStr){
-  if(!(S.notionSync && S.notionSync.enabled && S.notionSync.endpoint && S.notionSync.databaseId)) return;
-  var d=getDay(dateStr); var sig=signatureFor(d);
-  if(S.lastSynced[dateStr]===sig) return;
-  fetch(S.notionSync.endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({databaseId:S.notionSync.databaseId, date:dateStr, minutes:d.minutes, goal:S.goalMinutes, usedFreeDay:d.usedFreeDay})})
-    .then(function(r){return r.json().catch(function(){return {};});})
-    .then(function(){ S.lastSynced[dateStr]=sig; save(); })
-    .catch(function(){});
 }
 
 /* ===== Wiring ===== */
@@ -569,25 +597,14 @@ function wire(){
   $('#notifyEnable').checked=!!S.notifyEnabled;
   $('#notifyEnable').onchange=function(e){ S.notifyEnabled=!!e.target.checked; save(); if(S.notifyEnabled) ensurePermission(); };
 
-  // Public mirror toggle + copy URLs
+  // Public mirror toggle + copy URL
   $('#pubMirrorEnable').checked=!!S.publicMirrorEnabled;
   $('#pubMirrorEnable').onchange=function(e){ S.publicMirrorEnabled=!!e.target.checked; save(); if(CLOUD.user) saveToCloud(); };
-
-  // COPY: read-only URL
   $('#copyNotionUrl').onclick=function(){
-    if(!(CLOUD && CLOUD.user)){ alert('Sign in first in the full app.'); return; }
+    if(!CLOUD.user){ alert('Sign in first (top-level tab).'); return; }
     var base = window.location.href.split('#')[0].split('?')[0];
     var url = base + '?uid=' + encodeURIComponent(CLOUD.user.uid) + '&ns=' + encodeURIComponent(NS) + '&transparent=1';
-    navigator.clipboard.writeText(url).then(function(){ showToast('Copied Notion read-only URL'); }, function(){ alert(url); });
-  };
-
-  // COPY: write-enabled URL (requires same key as your Function config)
-  $('#copyNotionUrlWrite').onclick=function(){
-    var key = S.notionSync.widgetKey || '';
-    if (!key) { alert('Set a Widget key in Sync settings first. It must match your Function config.'); return; }
-    var base = window.location.href.split('#')[0].split('?')[0];
-    var url = base + '?key=' + encodeURIComponent(key) + '&ns=' + encodeURIComponent(NS) + '&transparent=1';
-    navigator.clipboard.writeText(url).then(function(){ showToast('Copied Notion write URL'); }, function(){ alert(url); });
+    navigator.clipboard.writeText(url).then(function(){ showToast('Copied Notion URL'); }, function(){ alert(url); });
   };
 
   // Free-day tools
@@ -609,17 +626,19 @@ function wire(){
   };});
   $('#bgClear').onclick=function(){ S.background=deepClone(DEF.background); save(); applyBackground(); };
 
-  // Notion sync inputs (optional)
-  $('#syncEndpoint').value=S.notionSync.endpoint||''; $('#syncDb').value=S.notionSync.databaseId||''; $('#syncKey').value=S.notionSync.widgetKey||'';
+  // Notion sync inputs
+  $('#syncEndpoint').value=S.notionSync.endpoint||''; $('#syncDb').value=S.notionSync.databaseId||''; $('#syncKey').value=S.notionSync.widgetKey||''; $('#syncEnable').checked=!!S.notionSync.enabled;
   $('#syncEndpoint').onchange=function(e){ S.notionSync.endpoint=e.target.value.trim(); save(); };
   $('#syncDb').onchange=function(e){ S.notionSync.databaseId=e.target.value.trim(); save(); };
   $('#syncKey').onchange=function(e){ S.notionSync.widgetKey=e.target.value.trim(); save(); };
-  $('#syncEnable').checked=!!S.notionSync.enabled;
   $('#syncEnable').onchange=function(e){ S.notionSync.enabled=!!e.target.checked; save(); if(S.notionSync.enabled) queueSync(todayStr()); };
   $('#syncNow').onclick=function(){ var t=todayStr(); var ds=[t]; for(var i=1;i<=7;i++) ds.push(addDays(t,-i)); ds.forEach(queueSync); alert("Sync queued (today + last 7)."); };
 
   // Keys
-  document.addEventListener('keydown',function(e){ if(e.code==='Space'){ e.preventDefault(); $('#startStop').click(); } if(e.key==='r'||e.key==='R'){ Timer.reset(); } });
+  document.addEventListener('keydown',function(e){
+    if(e.code==='Space'){ e.preventDefault(); $('#startStop').click(); }
+    if(e.key==='r'||e.key==='R'){ Timer.reset(); }
+  });
 }
 
 /* ===== Boot ===== */
@@ -632,7 +651,11 @@ function boot(){
   refreshStats();
   wire();
   initCloud();
-  if(S.notifyEnabled) ensurePermission();
+  ensurePermission();
+
+  setTimeout(function(){
+    if (AUTO_LOGIN && !IN_IFRAME && CLOUD.enabled && !CLOUD.user) { $('#authToggle')?.click(); }
+  }, 600);
 
   setInterval(function(){
     var planned=(selectedMode==='work'? S.sessionMinutes : effBreak(S.sessionMinutes))*60000;
